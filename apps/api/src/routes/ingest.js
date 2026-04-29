@@ -1,21 +1,14 @@
 import { Router } from 'express';
-import multer from 'multer';
 import { z } from 'zod';
 import mongoose from 'mongoose';
 
 import { parseHl7Message, hl7ToFhirResources, persistHl7Resources } from '../services/ingest/hl7v2.js';
 import { parseCcdaDocument, ccdaToFhirResources, persistCcdaResources } from '../services/ingest/ccda.js';
-import { extractFromDocument, persistDocumentExtraction } from '../services/ingest/pdf.js';
 import { requireConsent } from '../middleware/consent.js';
 import { recordAudit } from '../middleware/audit.js';
 import { HttpError } from '../middleware/error.js';
 
 const router = Router();
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-});
 
 const textIngestSchema = z.object({
   format: z.enum(['hl7v2', 'ccda']),
@@ -25,10 +18,7 @@ const textIngestSchema = z.object({
 /**
  * POST /api/Patient/:id/_ingest
  *
- * Body for HL7v2 / CCDA:
- *   { format: 'hl7v2' | 'ccda', content: '...' }
- *
- * For PDF/image: use multipart on /_ingest/file with a `file` field.
+ * Body: { format: 'hl7v2' | 'ccda', content: '...' }
  *
  * Returns: { format, counts, preview, sourceMeta }
  *
@@ -70,58 +60,6 @@ router.post(
     });
 
     res.json({ format: body.format, counts, preview, sourceMeta });
-  }
-);
-
-router.post(
-  '/:id/_ingest/file',
-  requireValidPatient,
-  requireConsent('*'),
-  upload.single('file'),
-  async (req, res) => {
-    if (!req.file) throw new HttpError(400, 'No file uploaded');
-    const patientId = req.params.id;
-    const mediaType = req.file.mimetype;
-
-    if (mediaType === 'application/pdf') {
-      throw new HttpError(
-        400,
-        'PDF uploads are not currently supported with the Groq vision backend. ' +
-        'Please convert each page to an image (PNG/JPEG/WEBP) and upload it.'
-      );
-    }
-    if (!/^image\/(jpeg|png|webp)/.test(mediaType)) {
-      throw new HttpError(400, `Unsupported media type: ${mediaType}`);
-    }
-
-    let extraction;
-    try {
-      extraction = await extractFromDocument({
-        buffer: req.file.buffer,
-        mediaType,
-      });
-    } catch (err) {
-      throw new HttpError(503, err.message);
-    }
-
-    const counts = await persistDocumentExtraction(extraction, patientId, {
-      sourceSystem: 'pdf-vision',
-      filename: req.file.originalname,
-    });
-
-    await recordAudit({
-      req,
-      action: 'agent.synthesis',
-      patientId,
-      details: { ingestFormat: 'pdf', filename: req.file.originalname, ...counts },
-    });
-
-    res.json({
-      format: 'pdf',
-      counts,
-      extraction,
-      sourceMeta: { filename: req.file.originalname, mediaType, size: req.file.size },
-    });
   }
 );
 

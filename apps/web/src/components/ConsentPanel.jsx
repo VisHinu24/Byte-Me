@@ -26,15 +26,13 @@ export function ConsentPanel({ patientId }) {
 
   return (
     <div className="space-y-6">
-      <div className="panel p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold">Patient consent portal</h2>
-            <p className="text-sm text-slate-400 mt-1 max-w-2xl">
-              Decide who can see what, and for how long. Each grant is enforced by the consent gate on every read.
-              Revoking is instant — the next agent call will be blocked at the gate.
-            </p>
-          </div>
+      <div className="panel p-7">
+        <div className="space-y-2 max-w-2xl">
+          <h2>Patient consent portal</h2>
+          <p className="text-sm text-slate-400">
+            Decide who can see what, and for how long. Each grant is enforced by the consent gate on every read.
+            Revoking is instant — the next agent call will be blocked at the gate.
+          </p>
         </div>
       </div>
 
@@ -137,43 +135,45 @@ function GrantForm({ patientId, existing, onSubmit, submitting, error }) {
   };
 
   return (
-    <form onSubmit={submit} className="panel p-5 space-y-4">
-      <div className="text-sm font-semibold uppercase tracking-wide text-slate-300">
+    <form onSubmit={submit} className="panel p-7 space-y-6">
+      <div className="section-heading">
         {alreadyGranted ? 'Update existing access' : 'Grant new access'}
       </div>
 
       {/* Provider picker */}
-      <div className="space-y-2">
-        <label className="text-xs text-slate-400">Provider</label>
-        <div className="grid grid-cols-2 gap-2">
+      <div className="space-y-3">
+        <label className="text-xs text-slate-400 font-medium uppercase tracking-wider">Provider</label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {DEMO_PROVIDERS.map((p) => (
             <button
               type="button"
               key={p.ref}
               onClick={() => setGranteeRef(p.ref)}
-              className={`text-left rounded-lg border p-3 transition ${
+              className={`text-left rounded-xl border p-4 transition ${
                 granteeRef === p.ref
                   ? 'border-clinical-accent bg-clinical-accent/5'
                   : 'border-clinical-border hover:border-clinical-accent/40'
               }`}
             >
-              <div className="font-medium text-sm">{p.name}</div>
-              <div className="text-xs text-slate-400">{p.specialty}</div>
-              <div className="text-xs text-slate-500">{p.org}</div>
+              <div className="font-semibold text-sm text-slate-100">{p.name}</div>
+              <div className="text-xs text-slate-400 mt-0.5">{p.specialty}</div>
+              <div className="text-xs text-slate-500 mt-0.5">{p.org}</div>
             </button>
           ))}
         </div>
         {alreadyGranted && (
-          <div className="text-xs text-clinical-accent">
+          <div className="text-xs text-clinical-accent bg-clinical-accent/5 border border-clinical-accent/20 rounded-lg px-3 py-2">
             Editing the existing grant for {grantee?.name}. Submitting will replace it; the prior grant moves to "Past / revoked" with a full audit entry.
           </div>
         )}
       </div>
 
       {/* Categories */}
-      <div className="space-y-2">
-        <label className="text-xs text-slate-400">Data categories ({categories.length} selected)</label>
-        <div className="grid grid-cols-3 gap-2">
+      <div className="space-y-3">
+        <label className="text-xs text-slate-400 font-medium uppercase tracking-wider">
+          Data categories ({categories.length} selected)
+        </label>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {DATA_CATEGORIES.map((c) => {
             const active = categories.includes(c.value);
             return (
@@ -181,7 +181,7 @@ function GrantForm({ patientId, existing, onSubmit, submitting, error }) {
                 type="button"
                 key={c.value}
                 onClick={() => toggle(c.value)}
-                className={`text-left rounded-lg border p-2 text-sm transition ${
+                className={`text-left rounded-xl border p-3 text-sm transition ${
                   active
                     ? c.sensitive
                       ? 'border-clinical-warn bg-clinical-warn/5'
@@ -203,13 +203,13 @@ function GrantForm({ patientId, existing, onSubmit, submitting, error }) {
       </div>
 
       {/* Duration + purpose */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label className="text-xs text-slate-400">Duration</label>
+          <label className="text-xs text-slate-400 font-medium uppercase tracking-wider">Duration</label>
           <select
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
-            className="w-full rounded-lg border border-clinical-border bg-clinical-panel px-3 py-2 text-sm"
+            className="input"
           >
             {DURATION_OPTIONS.map((d) => (
               <option key={d.value} value={d.value}>{d.label}</option>
@@ -217,11 +217,11 @@ function GrantForm({ patientId, existing, onSubmit, submitting, error }) {
           </select>
         </div>
         <div className="space-y-2">
-          <label className="text-xs text-slate-400">Purpose</label>
+          <label className="text-xs text-slate-400 font-medium uppercase tracking-wider">Purpose</label>
           <select
             value={purpose}
             onChange={(e) => setPurpose(e.target.value)}
-            className="w-full rounded-lg border border-clinical-border bg-clinical-panel px-3 py-2 text-sm"
+            className="input"
           >
             <option value="treatment">Treatment</option>
             <option value="emergency">Emergency</option>
@@ -232,13 +232,13 @@ function GrantForm({ patientId, existing, onSubmit, submitting, error }) {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-clinical-danger/40 bg-clinical-danger/10 p-2 text-sm text-clinical-danger">
+        <div className="rounded-lg border border-clinical-danger/40 bg-clinical-danger/10 p-3 text-sm text-clinical-danger">
           {error.message}
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <div className="text-xs text-slate-500">
+      <div className="flex items-center justify-between gap-4 flex-wrap pt-2 border-t border-clinical-border/40">
+        <div className="text-xs text-slate-500 flex-1 min-w-[280px]">
           {grantee && categories.length > 0 ? (
             <>{alreadyGranted ? 'Updating' : 'Granting'} <strong className="text-slate-300">{grantee.name}</strong> access to <strong className="text-slate-300">{categories.length}</strong> categories for <strong className="text-slate-300">{DURATION_OPTIONS.find((d) => d.value === duration)?.label}</strong>.</>
           ) : 'Pick a provider and at least one category.'}
@@ -246,7 +246,7 @@ function GrantForm({ patientId, existing, onSubmit, submitting, error }) {
         <button
           type="submit"
           disabled={submitting || categories.length === 0}
-          className="btn border-clinical-accent text-clinical-accent"
+          className="btn-primary btn-lg"
         >
           {submitting
             ? (alreadyGranted ? 'Updating…' : 'Granting…')
@@ -259,12 +259,12 @@ function GrantForm({ patientId, existing, onSubmit, submitting, error }) {
 
 function ConsentList({ title, grants, onRevoke, inactive, emptyText }) {
   return (
-    <section className="panel p-4">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-300 mb-3">{title}</h3>
+    <section className="panel p-6 space-y-4">
+      <h3 className="section-heading">{title}</h3>
       {grants.length === 0 ? (
         <div className="text-sm text-slate-500 italic">{emptyText ?? 'None.'}</div>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-3">
           {grants.map((c) => {
             const provider = findProvider(c.grantee?.reference);
             const expiresAt = c.period?.end ? new Date(c.period.end) : null;
@@ -272,8 +272,8 @@ function ConsentList({ title, grants, onRevoke, inactive, emptyText }) {
             return (
               <li
                 key={c._id}
-                className={`flex items-start justify-between gap-3 rounded-lg border p-3 ${
-                  inactive ? 'border-clinical-border/50 opacity-70' : 'border-clinical-border'
+                className={`flex items-start justify-between gap-3 rounded-xl border p-4 ${
+                  inactive ? 'border-clinical-border/50 opacity-70' : 'border-clinical-border bg-clinical-bg/30'
                 }`}
               >
                 <div className="flex-1">

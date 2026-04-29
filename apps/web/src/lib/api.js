@@ -73,21 +73,6 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ format, content }),
     }),
-
-  ingestFile: async (patientId, file) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    const res = await fetch(`${BASE}/api/Patient/${patientId}/_ingest/file`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: fd,
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.message ?? `${res.status} ${res.statusText}`);
-    }
-    return res.json();
-  },
 };
 
 /**

@@ -8,73 +8,119 @@
   }
   body {
     font-family: 'Inter var', 'Inter', system-ui, sans-serif;
+    @apply text-[15px] leading-relaxed;
   }
+  h1 { @apply text-3xl font-semibold tracking-tight; }
+  h2 { @apply text-xl font-semibold tracking-tight; }
 }
 
 @layer components {
+  /* ─── Panels & cards ─── */
   .panel {
-    @apply rounded-xl border border-clinical-border bg-clinical-panel/60 backdrop-blur-sm;
+    @apply rounded-2xl border border-clinical-border bg-clinical-panel/60 backdrop-blur-sm shadow-lg shadow-black/20;
   }
+  .panel-elevated {
+    @apply rounded-2xl border border-clinical-border bg-clinical-panel/80 backdrop-blur-md shadow-2xl shadow-black/30;
+  }
+
+  /* ─── Section headings (small caps + accent bar to the left) ─── */
+  .section-heading {
+    @apply relative pl-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-300;
+  }
+  .section-heading::before {
+    content: '';
+    @apply absolute left-0 top-1/2 -translate-y-1/2 h-3.5 w-0.5 rounded-full bg-clinical-accent;
+  }
+
+  /* ─── Pills, buttons, chips ─── */
   .pill {
-    @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium;
   }
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-clinical-border bg-clinical-panel px-3 py-1.5 text-sm font-medium text-slate-100 transition hover:border-clinical-accent hover:text-clinical-accent disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-clinical-border bg-clinical-panel px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-clinical-accent hover:text-clinical-accent disabled:opacity-50 disabled:cursor-not-allowed;
   }
+  .btn-primary {
+    @apply btn border-clinical-accent text-clinical-accent bg-clinical-accent/10 hover:bg-clinical-accent/20;
+  }
+  .btn-lg {
+    @apply px-5 py-2.5 text-base;
+  }
+
+  /* ─── Tab pills ─── */
+  .tab-strip {
+    @apply inline-flex items-center gap-1 rounded-full border border-clinical-border bg-clinical-panel/40 p-1;
+  }
+  .tab-pill {
+    @apply px-4 py-2 text-sm rounded-full transition text-slate-400 hover:text-slate-100;
+  }
+  .tab-pill-active {
+    @apply bg-clinical-accent/15 text-clinical-accent border border-clinical-accent/30;
+  }
+
+  /* ─── Inputs ─── */
+  .input {
+    @apply w-full rounded-lg border border-clinical-border bg-clinical-panel/60 px-4 py-2.5 text-sm text-slate-100 transition focus:border-clinical-accent focus:outline-none focus:ring-2 focus:ring-clinical-accent/20 placeholder:text-slate-500;
+  }
+
+  /* ─── Brief prose (the streamed markdown) ─── */
   .prose-brief {
-    @apply text-sm leading-relaxed text-slate-200;
+    @apply text-[15px] leading-relaxed text-slate-200;
   }
   .prose-brief h3 {
-    @apply text-xs uppercase tracking-wide text-clinical-accent font-semibold mt-4 first:mt-0 mb-1;
+    @apply text-xs uppercase tracking-[0.16em] text-clinical-accent font-semibold mt-5 first:mt-0 mb-2;
   }
   .prose-brief p {
-    @apply mb-2;
+    @apply mb-3;
   }
   .prose-brief ul {
-    @apply mb-2 space-y-1;
+    @apply mb-3 space-y-1.5;
   }
   .prose-brief li {
-    @apply pl-3 relative;
+    @apply pl-4 relative;
   }
   .prose-brief li::before {
     content: '·';
-    @apply absolute left-0 text-clinical-accent;
+    @apply absolute left-0 text-clinical-accent text-lg leading-none;
   }
   .prose-brief strong {
-    @apply text-slate-50;
+    @apply text-slate-50 font-semibold;
   }
   .prose-brief em {
     @apply text-slate-400 not-italic;
   }
   .prose-brief .cite {
-    @apply ml-1 inline-block rounded border border-clinical-accent/30 bg-clinical-accent/10 px-1.5 py-0.5 text-[10px] font-mono text-clinical-accent cursor-pointer align-middle transition;
+    @apply ml-1 inline-block rounded-md border border-clinical-accent/30 bg-clinical-accent/10 px-1.5 py-0.5 text-[10px] font-mono text-clinical-accent cursor-pointer align-middle transition;
   }
   .prose-brief .cite:hover {
-    @apply bg-clinical-accent/20 border-clinical-accent;
+    @apply bg-clinical-accent/25 border-clinical-accent;
   }
   .cite-btn {
-    @apply inline-flex items-center gap-1 rounded border border-clinical-accent/30 bg-clinical-accent/10 px-1.5 py-0.5 text-[10px] font-mono text-clinical-accent transition hover:bg-clinical-accent/20 hover:border-clinical-accent cursor-pointer;
+    @apply inline-flex items-center gap-1 rounded-md border border-clinical-accent/30 bg-clinical-accent/10 px-2 py-0.5 text-[11px] font-mono text-clinical-accent transition hover:bg-clinical-accent/25 hover:border-clinical-accent cursor-pointer;
   }
   .prose-brief .cursor {
     @apply inline-block text-clinical-accent;
     animation: blink 1s step-end infinite;
   }
+
   @keyframes blink {
     50% { opacity: 0; }
   }
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: #1e2a44;
-  border-radius: 4px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #2a3a5c;
+  background-clip: padding-box;
 }

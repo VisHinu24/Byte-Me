@@ -39,29 +39,29 @@ export function AuditLogPanel({ patientId }) {
   }, [items, filter]);
 
   return (
-    <div className="space-y-4">
-      <div className="panel p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold">Audit log</h2>
-            <p className="text-sm text-slate-400 mt-1 max-w-2xl">
+    <div className="space-y-5">
+      <div className="panel p-7">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="space-y-2 max-w-2xl">
+            <h2>Audit log</h2>
+            <p className="text-sm text-slate-400">
               Append-only record of every access to this patient's data. Updates every 10 seconds.
             </p>
           </div>
-          <button onClick={() => refetch()} className="btn text-xs">
+          <button onClick={() => refetch()} className="btn">
             {isFetching ? 'Refreshing…' : 'Refresh'}
           </button>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {FILTERS.map((f) => (
           <button
             key={f.key}
             onClick={() => setFilter(f.key)}
-            className={`px-3 py-1.5 rounded-md text-sm border transition ${
+            className={`px-4 py-2 rounded-full text-sm border transition ${
               filter === f.key
-                ? 'border-clinical-accent text-clinical-accent bg-clinical-accent/5'
+                ? 'border-clinical-accent text-clinical-accent bg-clinical-accent/10'
                 : 'border-clinical-border text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -81,7 +81,7 @@ export function AuditLogPanel({ patientId }) {
 
       <div className="panel overflow-hidden">
         {filtered.length === 0 ? (
-          <div className="p-8 text-center text-slate-500 text-sm">
+          <div className="p-12 text-center text-slate-500 text-sm">
             No entries match this filter.
           </div>
         ) : (
@@ -106,11 +106,11 @@ function AuditRow({ entry }) {
      actor.id ?? 'unknown');
 
   return (
-    <li className="px-4 py-2.5 flex items-start justify-between gap-3 hover:bg-clinical-accent/5">
+    <li className="px-5 py-4 flex items-start justify-between gap-3 hover:bg-clinical-accent/5 transition">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className={`pill ${outcomeColor(entry.outcome)}`}>{entry.outcome}</span>
-          <span className="font-medium text-sm">{ACTION_LABEL[entry.action] ?? entry.action}</span>
+          <span className="font-semibold text-sm text-slate-100">{ACTION_LABEL[entry.action] ?? entry.action}</span>
           <span className="text-xs text-slate-400">by {actorLabel}</span>
           {actor.role && (
             <span className="text-xs text-slate-500">({actor.role})</span>

@@ -52,11 +52,11 @@ export function MemoryPanel({ patientId }) {
 
   return (
     <div className="space-y-6">
-      <header className="panel p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold">Derived memories</h2>
-            <p className="text-sm text-slate-400 mt-1 max-w-2xl">
+      <header className="panel p-7">
+        <div className="flex items-start justify-between gap-6 flex-wrap">
+          <div className="space-y-2 max-w-2xl">
+            <h2>Derived memories</h2>
+            <p className="text-sm text-slate-400">
               Agent-distilled, persistent observations across the longitudinal record. Each memory carries
               citations to source FHIR resources and is loaded into every future point-of-care brief.
             </p>
@@ -64,22 +64,22 @@ export function MemoryPanel({ patientId }) {
           <button
             onClick={() => distill.mutate()}
             disabled={distill.isPending}
-            className="btn border-clinical-accent text-clinical-accent"
+            className="btn-primary btn-lg"
           >
             {distill.isPending ? 'Distilling…' : 'Run distillation →'}
           </button>
         </div>
 
         {distill.error && (
-          <div className="mt-3 rounded-md border border-clinical-danger/40 bg-clinical-danger/10 p-2 text-sm text-clinical-danger">
+          <div className="mt-4 rounded-lg border border-clinical-danger/40 bg-clinical-danger/10 p-3 text-sm text-clinical-danger">
             {distill.error.message}
           </div>
         )}
         {lastDistill && (
-          <div className="mt-3 rounded-md border border-clinical-accent/30 bg-clinical-accent/5 p-3 text-sm space-y-1">
+          <div className="mt-4 rounded-lg border border-clinical-accent/30 bg-clinical-accent/5 p-4 text-sm space-y-1">
             <div>
-              <strong className="text-clinical-accent">{lastDistill.created}</strong> new memories created
-              {lastDistill.skipped > 0 && <span> · {lastDistill.skipped} duplicates skipped</span>}
+              <strong className="text-clinical-accent text-base">{lastDistill.created}</strong> new memories created
+              {lastDistill.skipped > 0 && <span className="text-slate-400"> · {lastDistill.skipped} duplicates skipped</span>}
               {lastDistill.proposed === 0 && <span className="text-slate-400"> · agent had nothing new to add</span>}
             </div>
             <div className="text-xs text-slate-500 font-mono">model: {lastDistill.modelHint}</div>
@@ -87,14 +87,14 @@ export function MemoryPanel({ patientId }) {
         )}
       </header>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {STATUS_FILTERS.map((f) => (
           <button
             key={f.key}
             onClick={() => setStatusFilter(f.key)}
-            className={`px-3 py-1.5 rounded-md text-sm border transition ${
+            className={`px-4 py-2 rounded-full text-sm border transition ${
               statusFilter === f.key
-                ? 'border-clinical-accent text-clinical-accent bg-clinical-accent/5'
+                ? 'border-clinical-accent text-clinical-accent bg-clinical-accent/10'
                 : 'border-clinical-border text-slate-400 hover:text-slate-200'
             }`}
           >

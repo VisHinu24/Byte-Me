@@ -64,51 +64,60 @@ export function PatientDetailPage() {
   const isOwnRecord = me?.role === 'patient' && me?.sub === patient._id;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {!isOwnRecord && (
         <div className="flex items-center gap-3 text-sm text-slate-400">
-          <Link to="/patients" className="hover:text-clinical-accent">← Patients</Link>
+          <Link to="/patients" className="hover:text-clinical-accent transition">← Patients</Link>
         </div>
       )}
 
-      <header className="panel p-5 flex items-start justify-between gap-6">
-        <div>
-          <h1 className="text-2xl font-semibold">{displayName(patient)}</h1>
-          <div className="text-sm text-slate-400 mt-1 flex flex-wrap gap-x-4 gap-y-1">
-            <span>{ageFromBirth(patient.birthDate)} yrs</span>
-            <span className="capitalize">{patient.gender}</span>
-            <span>DOB {fmtDate(patient.birthDate)}</span>
-            <span className="font-mono text-xs">{patient.identifier?.[0]?.value}</span>
+      <header className="panel p-7 flex items-start justify-between gap-6 flex-wrap">
+        <div className="space-y-3 min-w-0">
+          <h1>{displayName(patient)}</h1>
+          <div className="text-sm text-slate-400 flex flex-wrap items-center gap-x-5 gap-y-1">
+            <span className="flex items-center gap-1.5">
+              <span className="text-slate-500">Age</span>
+              <span className="text-slate-200 font-medium">{ageFromBirth(patient.birthDate)}</span>
+            </span>
+            <span className="flex items-center gap-1.5 capitalize">
+              <span className="text-slate-500">Sex</span>
+              <span className="text-slate-200 font-medium">{patient.gender ?? '—'}</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-slate-500">DOB</span>
+              <span className="text-slate-200 font-medium">{fmtDate(patient.birthDate)}</span>
+            </span>
+            {patient.identifier?.[0]?.value && (
+              <span className="font-mono text-xs text-slate-500 truncate">{patient.identifier[0].value}</span>
+            )}
           </div>
           {patient.address?.[0] && (
-            <div className="text-xs text-slate-500 mt-1">
-              {[patient.address[0].city, patient.address[0].state, patient.address[0].country].filter(Boolean).join(' · ')}
+            <div className="text-xs text-slate-500">
+              📍 {[patient.address[0].city, patient.address[0].state, patient.address[0].country].filter(Boolean).join(' · ')}
             </div>
           )}
         </div>
 
-        <div className="flex flex-col items-end gap-2">
-          <span className="text-xs text-slate-500">{counts.encounters} encounters · last update {fmtDate(patient.updatedAt)}</span>
+        <div className="flex flex-col items-end gap-2 text-right">
+          <span className="text-xs text-slate-500">
+            <span className="text-slate-300 font-medium">{counts.encounters}</span> encounters · last update {fmtDate(patient.updatedAt)}
+          </span>
           <button
             onClick={() => navigator.clipboard?.writeText(patient._id)}
-            className="text-xs text-slate-500 hover:text-clinical-accent font-mono"
-            title="Copy patient ObjectId (for impersonation)"
+            className="text-xs text-slate-500 hover:text-clinical-accent font-mono transition"
+            title="Copy patient ObjectId"
           >
-            id: {patient._id.slice(0, 8)}…
+            id: {patient._id.slice(0, 10)}…
           </button>
         </div>
       </header>
 
-      <div className="border-b border-clinical-border flex items-center gap-1">
+      <div className="tab-strip flex-wrap">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm border-b-2 -mb-px transition ${
-              activeTab === t.key
-                ? 'border-clinical-accent text-clinical-accent'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
+            className={`tab-pill ${activeTab === t.key ? 'tab-pill-active' : ''}`}
           >
             {t.label}
           </button>

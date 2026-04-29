@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { SAMPLE_HL7V2, SAMPLE_HL7V2_ADT, SAMPLE_CCDA } from '../lib/samples.js';
@@ -7,7 +7,6 @@ import { fmtDate } from '../lib/format.js';
 const FORMAT_TABS = [
   { key: 'hl7v2', label: 'HL7 v2', desc: 'Pipe-delimited messages (ORU lab, ADT admit/discharge)' },
   { key: 'ccda', label: 'C-CDA XML', desc: 'Continuity of care document' },
-  { key: 'pdf', label: 'Image upload', desc: 'Scanned prescription / report photo — extracted via Groq vision' },
 ];
 
 export function IngestPanel({ patientId }) {
@@ -15,19 +14,9 @@ export function IngestPanel({ patientId }) {
   const [format, setFormat] = useState('hl7v2');
   const [text, setText] = useState('');
   const [result, setResult] = useState(null);
-  const fileRef = useRef(null);
 
   const ingestText = useMutation({
     mutationFn: ({ format, content }) => api.ingestText(patientId, format, content),
-    onSuccess: (res) => {
-      setResult(res);
-      invalidatePatientCaches(qc, patientId);
-    },
-    onError: () => setResult(null),
-  });
-
-  const ingestFile = useMutation({
-    mutationFn: (file) => api.ingestFile(patientId, file),
     onSuccess: (res) => {
       setResult(res);
       invalidatePatientCaches(qc, patientId);
@@ -40,7 +29,6 @@ export function IngestPanel({ patientId }) {
     setText('');
     setResult(null);
     ingestText.reset?.();
-    ingestFile.reset?.();
   };
 
   const submitText = () => {
@@ -49,42 +37,32 @@ export function IngestPanel({ patientId }) {
     ingestText.mutate({ format, content: text });
   };
 
-  const submitFile = () => {
-    const file = fileRef.current?.files?.[0];
-    if (!file) return;
-    setResult(null);
-    ingestFile.mutate(file);
-  };
-
-  const loading = ingestText.isPending || ingestFile.isPending;
-  const error = ingestText.error || ingestFile.error;
+  const loading = ingestText.isPending;
+  const error = ingestText.error;
 
   return (
-    <div className="space-y-5">
-      <header className="panel p-5">
-        <h2 className="text-lg font-semibold">Ingest non-FHIR sources</h2>
-        <p className="text-sm text-slate-400 mt-1 max-w-2xl">
+    <div className="space-y-6">
+      <header className="panel p-7 space-y-2 max-w-3xl">
+        <h2>Ingest non-FHIR sources</h2>
+        <p className="text-sm text-slate-400">
           Bring data from systems that don't speak FHIR. Each source gets parsed, normalized to FHIR R4, tagged with provenance, and merged into this patient's record.
         </p>
       </header>
 
-      <div className="flex items-center gap-2 border-b border-clinical-border">
-        {FORMAT_TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => handleFormat(t.key)}
-            className={`px-4 py-2 text-sm border-b-2 -mb-px transition ${
-              format === t.key
-                ? 'border-clinical-accent text-clinical-accent'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="space-y-3">
+        <div className="tab-strip">
+          {FORMAT_TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => handleFormat(t.key)}
+              className={`tab-pill ${format === t.key ? 'tab-pill-active' : ''}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-slate-500 px-1">{FORMAT_TABS.find((t) => t.key === format)?.desc}</p>
       </div>
-
-      <p className="text-xs text-slate-500">{FORMAT_TABS.find((t) => t.key === format)?.desc}</p>
 
       {format === 'hl7v2' && (
         <TextIngest
@@ -115,14 +93,6 @@ export function IngestPanel({ patientId }) {
         />
       )}
 
-      {format === 'pdf' && (
-        <PdfIngest
-          fileRef={fileRef}
-          onSubmit={submitFile}
-          loading={loading}
-        />
-      )}
-
       {error && (
         <div className="rounded-lg border border-clinical-danger/40 bg-clinical-danger/10 p-3 text-sm text-clinical-danger">
           {error.message}
@@ -136,10 +106,10 @@ export function IngestPanel({ patientId }) {
 
 function TextIngest({ format, mono, placeholder, text, onTextChange, samples, onSubmit, loading }) {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-400">{format} payload</span>
-        <div className="flex gap-1">
+    <div className="panel p-6 space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <span className="section-heading">{format} payload</span>
+        <div className="flex gap-2">
           {samples?.map((s) => (
             <button key={s.label} onClick={() => onTextChange(s.value)} className="btn text-xs">
               {s.label}
@@ -151,15 +121,15 @@ function TextIngest({ format, mono, placeholder, text, onTextChange, samples, on
         value={text}
         onChange={(e) => onTextChange(e.target.value)}
         placeholder={placeholder}
-        rows={14}
-        className={`w-full rounded-lg border border-clinical-border bg-clinical-bg/40 px-3 py-2 text-sm focus:border-clinical-accent focus:outline-none ${mono ? 'font-mono text-xs leading-relaxed' : ''}`}
+        rows={16}
+        className={`w-full rounded-xl border border-clinical-border bg-clinical-bg/40 px-4 py-3 text-sm focus:border-clinical-accent focus:outline-none focus:ring-2 focus:ring-clinical-accent/20 ${mono ? 'font-mono text-xs leading-relaxed' : ''}`}
       />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <span className="text-xs text-slate-500">{text.length.toLocaleString()} characters</span>
         <button
           onClick={onSubmit}
           disabled={!text.trim() || loading}
-          className="btn border-clinical-accent text-clinical-accent"
+          className="btn-primary btn-lg"
         >
           {loading ? 'Ingesting…' : 'Parse & ingest →'}
         </button>
@@ -168,46 +138,13 @@ function TextIngest({ format, mono, placeholder, text, onTextChange, samples, on
   );
 }
 
-function PdfIngest({ fileRef, onSubmit, loading }) {
-  const [filename, setFilename] = useState('');
-  return (
-    <div className="space-y-3">
-      <div className="rounded-lg border border-dashed border-clinical-border p-6 text-center bg-clinical-bg/30">
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          onChange={(e) => setFilename(e.target.files?.[0]?.name ?? '')}
-          className="block w-full text-sm text-slate-400 file:mr-3 file:py-2 file:px-3 file:rounded file:border file:border-clinical-border file:bg-clinical-panel file:text-slate-200 hover:file:border-clinical-accent"
-        />
-        {filename && (
-          <p className="text-xs text-slate-400 mt-2 font-mono">selected: {filename}</p>
-        )}
-        <p className="text-xs text-slate-500 mt-3">
-          Groq vision extracts medications, conditions, allergies, and observations.<br />
-          Requires <span className="font-mono">GROQ_API_KEY</span> on the API server. Images only (jpg/png/webp).
-        </p>
-      </div>
-      <div className="flex items-center justify-end">
-        <button
-          onClick={onSubmit}
-          disabled={!filename || loading}
-          className="btn border-clinical-accent text-clinical-accent"
-        >
-          {loading ? 'Extracting…' : 'Extract & ingest →'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function IngestResult({ result }) {
   return (
-    <section className="panel p-4 space-y-3">
-      <header className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-300">Ingestion result</h3>
-          <p className="text-xs text-slate-500 font-mono mt-1">
+    <section className="panel p-6 space-y-4">
+      <header className="flex items-center justify-between flex-wrap gap-2">
+        <div className="space-y-1">
+          <h3 className="section-heading">Ingestion result</h3>
+          <p className="text-xs text-slate-500 font-mono">
             format: {result.format} {result.sourceMeta?.messageType ? `· ${result.sourceMeta.messageType}` : ''}
             {result.sourceMeta?.title ? ` · ${result.sourceMeta.title}` : ''}
             {result.sourceMeta?.filename ? ` · ${result.sourceMeta.filename}` : ''}
@@ -250,16 +187,6 @@ function IngestResult({ result }) {
         </details>
       )}
 
-      {result.extraction && (
-        <details className="rounded-lg border border-clinical-border bg-clinical-bg/30">
-          <summary className="cursor-pointer px-3 py-2 text-xs text-slate-400 hover:text-clinical-accent">
-            Raw vision extraction
-          </summary>
-          <pre className="px-3 py-2 text-[11px] font-mono text-slate-300 overflow-x-auto leading-relaxed border-t border-clinical-border max-h-80">
-            {JSON.stringify(result.extraction, null, 2)}
-          </pre>
-        </details>
-      )}
 
       <p className="text-xs text-slate-500 italic">
         These records are now part of the patient's longitudinal record. Re-run distillation in the Memory tab to incorporate them.
