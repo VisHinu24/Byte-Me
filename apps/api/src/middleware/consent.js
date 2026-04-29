@@ -1,7 +1,7 @@
 import { Consent, AuditLog } from '../models/index.js';
 import { HttpError } from './error.js';
 import { logger } from '../config/logger.js';
-import { isDev } from '../config/env.js';
+import { env } from '../config/env.js';
 
 /**
  * Hard gate. For any route that touches a specific patient's data, enforce:
@@ -65,21 +65,21 @@ export function requireConsent(category) {
       }
     }
 
-    // Dev bypass applies only for the default (non-impersonated) demo
-    // identity, so first-run dev works smoothly. Impersonated users go
+    // Demo bypass applies only for the default (non-impersonated) demo
+    // identity, so the open demo URL works smoothly. Impersonated users go
     // through the real gate so the demo can show enforcement.
-    if (!allowed && isDev && !req.user.impersonated) {
-      req.consent = { grantedCategories: null, scope: 'dev-bypass' };
+    if (!allowed && env.demoMode && !req.user.impersonated) {
+      req.consent = { grantedCategories: null, scope: 'demo-bypass' };
       await AuditLog.create({
         actor: { kind: 'user', id: req.user.sub, role: req.user.role },
         action: 'consent.check',
         patient: { reference: patientRef },
         outcome: 'allowed',
-        reason: `dev-bypass:${reason}`,
+        reason: `demo-bypass:${reason}`,
         details: { category, granteeRef },
         ip: req.ip,
       }).catch((err) => logger.warn({ err }, 'audit log write failed'));
-      logger.warn({ patientRef, granteeRef, category, reason }, 'consent dev-bypass');
+      logger.warn({ patientRef, granteeRef, category, reason }, 'consent demo-bypass');
       return next();
     }
 

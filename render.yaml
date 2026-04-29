@@ -25,6 +25,10 @@ services:
         value: production
       - key: JWT_EXPIRES_IN
         value: 7d
+      # Demo mode keeps the open-impersonation flow alive even with
+      # NODE_ENV=production. Flip to "false" when you wire up real auth.
+      - key: DEMO_MODE
+        value: "true"
       # Secrets — set these in the Render dashboard, never commit them.
       - key: MONGO_URI
         sync: false           # MongoDB Atlas connection string

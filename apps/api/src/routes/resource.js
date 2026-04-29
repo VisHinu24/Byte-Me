@@ -11,7 +11,7 @@ import {
 } from '../models/index.js';
 import { Consent, AuditLog } from '../models/index.js';
 import { HttpError } from '../middleware/error.js';
-import { isDev } from '../config/env.js';
+import { env } from '../config/env.js';
 
 /**
  * Generic FHIR resource lookup — used by the brief's [cite:Type/id]
@@ -86,8 +86,8 @@ async function enforceConsent(req, patientId, category) {
       ? live.length > 0
       : live.some((c) => c.coversCategory(category));
 
-  if (!allowed && isDev && !req.user.impersonated) {
-    return; // dev bypass for default identity
+  if (!allowed && env.demoMode && !req.user.impersonated) {
+    return; // demo bypass for default identity
   }
 
   await AuditLog.create({

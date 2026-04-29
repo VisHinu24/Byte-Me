@@ -1,21 +1,25 @@
 import jwt from 'jsonwebtoken';
-import { env, isDev } from '../config/env.js';
+import { env } from '../config/env.js';
 import { HttpError } from './error.js';
 
 /**
  * Demo auth: clinicians and patients authenticate, get a JWT carrying their
- * role + identity. In dev, an `X-Dev-User` header bypasses real auth so we can
- * iterate without a login flow.
+ * role + identity. When DEMO_MODE is on (default), an `X-Dev-User` header
+ * impersonates an identity, and unauthenticated requests fall through to a
+ * default demo-clinician identity so the open demo URL works without login.
+ *
+ * Set DEMO_MODE=false to require real bearer tokens on every request — flip
+ * this when you wire up real auth (OAuth / SMART-on-FHIR).
  *
  * Token payload: { sub, role, name, providerId? }
  *  - role: 'clinician' | 'patient' | 'admin'
  *  - sub: user id
  */
 export function authenticate(req, _res, next) {
-  // Explicit impersonation via header — dev only, and treated as a real
-  // identity. The consent gate will NOT bypass for impersonated users
-  // (so the demo can show consent enforcement working).
-  if (isDev && req.headers['x-dev-user']) {
+  // Explicit impersonation via header (demo only). Treated as a real
+  // identity — the consent gate WILL enforce for impersonated users so
+  // the demo can show consent enforcement working.
+  if (env.demoMode && req.headers['x-dev-user']) {
     const [role, id, name] = String(req.headers['x-dev-user']).split(':');
     req.user = {
       sub: id ?? 'dev',
@@ -29,9 +33,9 @@ export function authenticate(req, _res, next) {
 
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) {
-    // No auth header. In dev, fall through to a default demo clinician
+    // No auth header. In demo mode, fall through to a default demo clinician
     // who DOES get the consent bypass (so first-run experience works).
-    if (isDev) {
+    if (env.demoMode) {
       req.user = {
         sub: 'demo-clinician',
         role: 'clinician',

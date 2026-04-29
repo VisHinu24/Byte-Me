@@ -47,6 +47,11 @@ Render's egress IPs aren't fixed on the free tier. The simplest fix:
    | `GROQ_API_KEY` | from console.groq.com → API Keys |
    | `FRONTEND_ORIGIN` | leave blank for now — we'll fill it after Vercel deploys |
 
+   `NODE_ENV=production`, `JWT_EXPIRES_IN=7d`, and `DEMO_MODE=true` are
+   pre-set in `render.yaml`. **Don't override `DEMO_MODE`** — it's what
+   keeps the open-impersonation demo working in production. Flip it to
+   `false` later if/when you add real auth.
+
 6. Wait ~3 min for the build + first deploy
 7. Once it's live, copy the URL Render assigns — looks like `https://pml-api-xxxx.onrender.com`
 8. **Sanity check**: open `<your-render-url>/health` in a browser. You should see:
@@ -110,6 +115,7 @@ If any of these fail, check Render logs first (most issues are env vars or CORS)
 | Vercel build fails on `npm run build` | Make sure Root Directory is `apps/web`, not the repo root. The `vercel.json` build command does the workspace-aware install. |
 | Brief panel shows CORS error | `FRONTEND_ORIGIN` on Render doesn't match the actual Vercel URL. Compare them character-by-character (https vs http, trailing slash). |
 | 503 from Render after 30+ min idle | Free tier cold start. First request takes ~30s, subsequent are fast. Upgrade to Starter to keep warm. |
+| Every request 401s on the deployed frontend | `DEMO_MODE` is unset or `false` on Render. Without real auth, the open demo needs `DEMO_MODE=true`. |
 | `Brief failed: 401 Not authenticated` | `JWT_SECRET` wasn't set on Render. |
 | Brief works but says "offline mock" | `GROQ_API_KEY` wasn't set on Render, or it's invalid. |
 

@@ -18,6 +18,12 @@ export const env = {
   // Comma-separated list of allowed CORS origins (production hardening).
   // When unset, CORS is permissive (dev). Set to e.g. "https://pml.vercel.app".
   frontendOrigin: process.env.FRONTEND_ORIGIN ?? null,
+  // Demo mode: enables the impersonation switcher + the demo-clinician
+  // fallback when no Authorization header is present. Independent of
+  // NODE_ENV so a production deployment can still run the open hackathon
+  // demo with proper logging / hardening. Set DEMO_MODE=false once real
+  // auth is wired up to lock the system down.
+  demoMode: process.env.DEMO_MODE !== 'false',
 };
 
 export const isDev = env.nodeEnv === 'development';

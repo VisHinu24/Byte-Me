@@ -13,7 +13,7 @@ import { HttpError } from '../middleware/error.js';
 import { buildPatientSummary } from '../services/patientSummary.js';
 import { requireConsent } from '../middleware/consent.js';
 import { Consent } from '../models/index.js';
-import { isDev } from '../config/env.js';
+import { env } from '../config/env.js';
 
 const router = Router();
 
@@ -65,8 +65,8 @@ router.get('/', async (req, res) => {
       return res.json({ total: 0, limit, skip, items: [] });
     }
     allowedFilter = { _id: { $in: consentedPatientIds } };
-  } else if (isDev && user?.role === 'clinician') {
-    // Default Dr. Demo identity (non-impersonated, dev mode) — sees all.
+  } else if (env.demoMode && user?.role === 'clinician') {
+    // Default Dr. Demo identity (non-impersonated, demo mode) — sees all.
     allowedFilter = {};
   } else {
     return res.json({ total: 0, limit, skip, items: [] });
