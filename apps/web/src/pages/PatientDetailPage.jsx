@@ -12,7 +12,7 @@ import { IngestPanel } from '../components/IngestPanel.jsx';
 
 const ALL_TABS = [
   { key: 'clinical', label: 'Clinical record & brief', roles: ['patient', 'clinician'] },
-  { key: 'memory', label: 'Memory', roles: ['patient', 'clinician'] },
+  { key: 'memory', label: 'Memory', roles: ['patient'] }, // patient-only — doctors don't curate memory
   { key: 'ingest', label: 'Ingest', roles: ['patient', 'clinician'] },
   { key: 'consent', label: 'Consent', roles: ['patient'] }, // patient-only
   { key: 'audit', label: 'Audit log', roles: ['patient', 'clinician'] },

@@ -34,6 +34,7 @@ export async function orchestrateBrief({ patientId, complaint, allowedCategories
           allergies: retrieval.findings.allergies.length,
           labTrends: retrieval.findings.labTrendInsights.length,
           memories: retrieval.findings.derivedMemories?.length ?? 0,
+          memoriesFiltered: retrieval.findings.memoriesFiltered ?? 0,
         },
         complaintRelevant: retrieval.findings.relevantToComplaint?.length ?? 0,
         topRelevance: (retrieval.findings.relevantToComplaint ?? []).slice(0, 3).map((r) => ({

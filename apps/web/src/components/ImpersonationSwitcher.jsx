@@ -54,7 +54,7 @@ export function ImpersonationSwitcher() {
       )}
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 panel z-20 p-2 shadow-xl max-h-[80vh] overflow-y-auto">
+        <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-clinical-border bg-clinical-panel/70 backdrop-blur-md z-20 p-2 shadow-2xl max-h-[80vh] overflow-y-auto">
           <div className="text-[10px] uppercase tracking-wide text-slate-500 px-2 pb-1">Switch identity (demo)</div>
 
           <button
@@ -110,40 +110,11 @@ export function ImpersonationSwitcher() {
             );
           })}
 
-          <div className="text-[10px] uppercase tracking-wide text-slate-500 px-2 pt-3 pb-1">Custom</div>
-          <CustomPatientImpersonator current={current} apply={apply} />
-
           <div className="border-t border-clinical-border mt-2 pt-2 px-2 text-[10px] text-slate-500 leading-relaxed">
             Switching identity reroutes API calls under that user. Patients land on their own chart;
             doctors see only patients who granted them access.
           </div>
         </div>
-      )}
-    </div>
-  );
-}
-
-function CustomPatientImpersonator({ current, apply }) {
-  const [pid, setPid] = useState('');
-  return (
-    <div className="px-2">
-      <div className="flex gap-1">
-        <input
-          value={pid}
-          onChange={(e) => setPid(e.target.value)}
-          placeholder="Patient ObjectId"
-          className="flex-1 rounded border border-clinical-border bg-clinical-bg px-2 py-1 text-xs font-mono"
-        />
-        <button
-          disabled={!pid.trim()}
-          onClick={() => apply(`patient:${pid.trim()}:Custom Patient`)}
-          className="btn text-xs px-2 py-1"
-        >
-          Use
-        </button>
-      </div>
-      {current?.role === 'patient' && current?.name === 'Custom Patient' && (
-        <div className="text-xs text-slate-400 mt-1 truncate">→ {current.id}</div>
       )}
     </div>
   );

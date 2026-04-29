@@ -242,6 +242,7 @@ function renderPayload(key, p) {
       `${p.counts.labTrends} trends`,
     ];
     if (p.counts.memories > 0) parts.push(`${p.counts.memories} memories`);
+    if (p.counts.memoriesFiltered > 0) parts.push(`${p.counts.memoriesFiltered} memories withheld (out of scope)`);
     const summary = parts.join(' · ');
 
     if (p.complaintRelevant > 0) {

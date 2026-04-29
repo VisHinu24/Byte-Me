@@ -14,12 +14,23 @@ import { rankClinicalContext } from '../services/keywordRetrieval.js';
  */
 export async function runRetrievalAgent({ patientId, complaint, allowedCategories = null }) {
   const summary = await buildPatientSummary(patientId, { allowedCategories });
-  const memories = await DerivedMemory.find({
+  const allMemories = await DerivedMemory.find({
     'patient.reference': `Patient/${patientId}`,
     status: 'active',
   })
     .sort({ createdAt: -1 })
     .lean();
+
+  // Privacy filter: a memory may cite multiple FHIR sources spanning
+  // different categories (e.g. a "polypharmacy + recent ER visit" memory
+  // cites MedicationRequests AND an Encounter). We only surface a memory
+  // if EVERY source's category is in the requester's allowed list, so a
+  // doctor with [conditions] only never sees memories that lean on
+  // observations/allergies/encounters/etc.
+  const memories = allowedCategories === null
+    ? allMemories
+    : allMemories.filter((m) => isMemoryInScope(m, allowedCategories));
+  const memoriesFiltered = allMemories.length - memories.length;
 
   const findings = {
     activeProblems: summary.activeConditions.map((c) => ({
@@ -74,6 +85,7 @@ export async function runRetrievalAgent({ patientId, complaint, allowedCategorie
 
     complaintFocus: complaint || null,
     allowedCategories, // surfaced so synthesis can declare scope to the LLM + UI
+    memoriesFiltered,  // how many memories were withheld due to scope (telemetry)
   };
 
   // If a complaint is provided, score every clinical item and surface the
@@ -134,4 +146,36 @@ function summarizeTrend(trend) {
 
 function textOf(cc) {
   return cc?.text ?? cc?.coding?.[0]?.display ?? cc?.coding?.[0]?.code ?? null;
+}
+
+// Map FHIR resource types to consent categories. Used to decide whether a
+// derived memory is in scope for the requester.
+const RESOURCE_TO_CATEGORY = {
+  Patient: 'demographics',
+  Encounter: 'encounters',
+  Condition: 'conditions',
+  MedicationRequest: 'medications',
+  Observation: 'observations',
+  AllergyIntolerance: 'allergies',
+};
+
+/**
+ * A memory is in-scope if EVERY source it cites maps to a category in
+ * allowedCategories. A memory with no sources is treated as out-of-scope
+ * (we can't verify what it draws on, so we err toward not leaking).
+ *
+ * Note: 'demographics' grants name/gender/birthDate visibility but a memory
+ * citing only Patient is unusual — the path here treats it like any other
+ * source: include only if 'demographics' is granted.
+ */
+function isMemoryInScope(memory, allowedCategories) {
+  const sources = memory?.sources ?? [];
+  if (sources.length === 0) return false;
+  for (const s of sources) {
+    const cat = RESOURCE_TO_CATEGORY[s.resourceType];
+    // Unknown resource type — be conservative, exclude.
+    if (!cat) return false;
+    if (!allowedCategories.includes(cat)) return false;
+  }
+  return true;
 }

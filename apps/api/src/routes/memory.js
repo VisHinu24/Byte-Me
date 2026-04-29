@@ -11,12 +11,33 @@ import { logger } from '../config/logger.js';
 
 const router = Router();
 
+/**
+ * DerivedMemory is patient-curated. The patient owns the memory layer:
+ *   - they list their own memories
+ *   - they trigger distillation
+ *   - they reject / restore memories
+ *
+ * Doctors do NOT see the Memory tab in the UI and cannot hit these endpoints
+ * directly. Memories still surface inside the synthesized brief (with cite
+ * pins) via the retrieval agent, but the curation surface stays patient-only.
+ */
+function requirePatientSelf(req, _res, next) {
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
+  if (req.user.role !== 'patient') {
+    throw new HttpError(403, 'Memory curation is patient-only');
+  }
+  if (req.params.id && req.user.sub !== req.params.id) {
+    throw new HttpError(403, 'You can only manage memories for your own record');
+  }
+  next();
+}
+
 // ---------- Patient-scoped: list + distill ----------
 
 router.get(
   '/:id/DerivedMemory',
   requireValidId,
-  requireConsent('*'),
+  requirePatientSelf,
   async (req, res) => {
     const { status = 'active', kind } = req.query;
     const filter = { 'patient.reference': `Patient/${req.params.id}` };
@@ -31,15 +52,15 @@ router.get(
 router.post(
   '/:id/_distill',
   requireValidId,
-  requireConsent('*'),
+  requirePatientSelf,
   async (req, res) => {
     const patientId = req.params.id;
     const patientRef = `Patient/${patientId}`;
 
-    // Pull current findings for the patient (scoped to caller's grants).
+    // Patient self-distillation — full record is allowed (allowedCategories=null).
     const { findings } = await runRetrievalAgent({
       patientId,
-      allowedCategories: req.consent?.grantedCategories ?? null,
+      allowedCategories: null,
     });
 
     // Avoid duplicating against existing active memories
@@ -111,10 +132,18 @@ export const memoryStatusRouter = Router();
 memoryStatusRouter.patch('/:id/status', async (req, res) => {
   const memId = req.params.id;
   if (!mongoose.isValidObjectId(memId)) throw new HttpError(400, 'Invalid memory id');
+  if (!req.user) throw new HttpError(401, 'Not authenticated');
 
   const body = statusSchema.parse(req.body);
   const memory = await DerivedMemory.findById(memId);
   if (!memory) throw new HttpError(404, 'Memory not found');
+
+  // Patient-only — only the patient can curate (reject / restore / supersede)
+  // memories on their own record.
+  const memoryPatientId = memory.patient.reference?.split('/')[1];
+  if (req.user.role !== 'patient' || req.user.sub !== memoryPatientId) {
+    throw new HttpError(403, 'Memory curation is patient-only');
+  }
 
   memory.status = body.status;
   if (body.status === 'rejected') memory.rejectedReason = body.rejectedReason;
@@ -123,7 +152,7 @@ memoryStatusRouter.patch('/:id/status', async (req, res) => {
   await recordAudit({
     req,
     action: 'agent.synthesis',
-    patientId: memory.patient.reference?.split('/')[1],
+    patientId: memoryPatientId,
     details: { memoryId: memId, newStatus: body.status, reason: body.rejectedReason },
   });
 
