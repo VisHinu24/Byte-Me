@@ -12,42 +12,61 @@ import { HttpError } from '../middleware/error.js';
  * Build a longitudinal summary for a patient — the raw structured input that
  * downstream agents (retrieval / synthesis / risk) consume.
  *
- * This is intentionally _structured_, not narrative. The Synthesis agent
- * turns this into clinician-facing prose with citations.
+ * Privacy scoping: callers can pass `allowedCategories` to restrict which
+ * resource types are loaded. This honors the consent grants — a doctor with
+ * only [conditions, medications] gets only those sections; everything else
+ * comes back as empty arrays. Pass `null` (default) for unrestricted access
+ * (patient self, dev-bypass).
  */
-export async function buildPatientSummary(patientId) {
-  const patient = await Patient.findById(patientId).lean();
+export async function buildPatientSummary(patientId, opts = {}) {
+  const allowedCategories = opts.allowedCategories ?? null; // null = unrestricted
+
+  const can = (cat) => allowedCategories === null || allowedCategories.includes(cat);
+
+  // Patient identity (name, gender, birthDate) is always visible to anyone who
+  // has any active consent — a clinician needs to know WHO they're treating,
+  // and the patient's name appears in the patient-list view anyway. The
+  // privacy-sensitive `demographics` category gates the rest: address,
+  // telecom, full identifier set (SSN, ABHA id, etc).
+  const patientPromise = can('demographics')
+    ? Patient.findById(patientId).lean()
+    : Patient.findById(patientId)
+        .select({ _id: 1, name: 1, gender: 1, birthDate: 1 })
+        .lean();
+
+  const patient = await patientPromise;
   if (!patient) throw new HttpError(404, `Patient ${patientId} not found`);
 
   const ref = `Patient/${patientId}`;
+  const empty = async () => [];
 
   const [encounters, conditions, medications, observations, allergies] = await Promise.all([
-    Encounter.find({ 'subject.reference': ref })
-      .sort({ 'period.start': -1 })
-      .limit(50)
-      .lean(),
-    Condition.find({ 'subject.reference': ref })
-      .sort({ recordedDate: -1 })
-      .lean(),
-    MedicationRequest.find({ 'subject.reference': ref })
-      .sort({ authoredOn: -1 })
-      .lean(),
-    Observation.find({ 'subject.reference': ref })
-      .sort({ effectiveDateTime: -1 })
-      .limit(200)
-      .lean(),
-    AllergyIntolerance.find({ 'patient.reference': ref }).lean(),
+    can('encounters')
+      ? Encounter.find({ 'subject.reference': ref }).sort({ 'period.start': -1 }).limit(50).lean()
+      : empty(),
+    can('conditions')
+      ? Condition.find({ 'subject.reference': ref }).sort({ recordedDate: -1 }).lean()
+      : empty(),
+    can('medications')
+      ? MedicationRequest.find({ 'subject.reference': ref }).sort({ authoredOn: -1 }).lean()
+      : empty(),
+    can('observations')
+      ? Observation.find({ 'subject.reference': ref }).sort({ effectiveDateTime: -1 }).limit(200).lean()
+      : empty(),
+    can('allergies')
+      ? AllergyIntolerance.find({ 'patient.reference': ref }).lean()
+      : empty(),
   ]);
 
   const activeConditions = conditions.filter(
     (c) => textOf(c.clinicalStatus) === 'active' || !c.abatementDateTime
   );
   const activeMedications = medications.filter((m) => m.status === 'active');
-
   const labTrends = groupLabsByCode(observations.filter((o) => isLab(o)));
 
   return {
     patient,
+    allowedCategories, // surfaces scope to downstream consumers
     counts: {
       encounters: encounters.length,
       conditions: conditions.length,

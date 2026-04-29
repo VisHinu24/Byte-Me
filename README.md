@@ -1,6 +1,6 @@
 # Patient Memory Layer (PML)
 
-**An AI-agent-powered, consent-mediated longitudinal patient memory layer.** A unified FHIR-shaped record that follows the patient — not the provider — with an orchestrated network of Claude agents that synthesize the most clinically relevant context at the point of care, all under explicit patient consent and granular data governance.
+**An AI-agent-powered, consent-mediated longitudinal patient memory layer.** A unified FHIR-shaped record that follows the patient — not the provider — with an orchestrated network of LLM agents (Groq · `llama-3.1-8b-instant`) that synthesize the most clinically relevant context at the point of care, all under explicit patient consent and granular data governance.
 
 > **Status: feature-complete demo.** Six milestones shipped — FHIR record + agent orchestration, ranked retrieval with complaint focus, derived memory layer, multi-format ingestion (FHIR / HL7v2 / CCDA / PDF), patient consent portal, cite-click provenance.
 
@@ -55,10 +55,10 @@ npm run dev
 | Frontend | React 18 + Vite + Tailwind + TanStack Query | Fast dev, no TS overhead per spec, JSX-native shadcn-style components |
 | Backend | Node.js 20 + Express 4 | Async runtime, REST + SSE streaming, ecosystem fit |
 | Database | MongoDB Atlas | FHIR resources are JSON documents — natural fit; flexible schema for messy real-world EHR variants. Hosted on Atlas, so no local DB setup. |
-| Agents | Anthropic SDK + Claude Opus 4.7 / Haiku 4.5 | Prompt caching for patient context across agent calls |
+| Agents | Groq SDK + `llama-3.1-8b-instant` | Sub-second streaming on a free hosted endpoint; OpenAI-compatible API surface so it's swappable |
 | FHIR | R4-shaped Mongoose models | Industry standard, no off-the-shelf FHIR-server-on-Mongo so we shape our own |
 | Ranked retrieval | BM25 + clinical synonym expansion | Right tool for the scale; interface lets production swap to Voyage AI / Atlas Vector Search |
-| Vision OCR | Claude vision (Opus 4.7) | Scanned prescriptions / lab PDFs → structured FHIR |
+| Vision OCR | Groq vision (`llama-3.2-11b-vision-preview`) | Scanned prescription / lab photos → structured FHIR. Images only (jpg/png/webp). |
 
 ---
 
@@ -127,7 +127,7 @@ Most legacy EHR data isn't FHIR. PML handles three real-world sources via the **
 | --- | --- | --- |
 | **HL7 v2** (pipe-delimited) | Custom parser, MSH/PID/PV1/OBR/OBX | `Observation[]` (ORU^R01 lab) · `Encounter` (ADT^A01/A03/A08) |
 | **C-CDA** (XML) | `fast-xml-parser` + template-OID dispatch | `Condition` (Problem List) · `MedicationRequest` (Medications) · `AllergyIntolerance` (Allergies) · `Observation` (Results) |
-| **PDF / image** (scanned prescription, lab PDF, photo) | Claude vision (Opus 4.7) → strict JSON | All of the above |
+| **Image** (scanned prescription, lab photo) | Groq vision (`llama-3.2-11b-vision-preview`) → strict JSON | All of the above. Images only (jpg/png/webp); native PDF requires conversion. |
 
 Every ingested record carries `provenance.sourceFormat` so the brief, the memory layer, and the cite-click modal all honestly attribute the source.
 
@@ -194,7 +194,7 @@ Three specialist agents behind one orchestrator:
 clinician complaint ─┤                                                  │
 + patient id         ├──── risk (rule-based: drug-allergy, ddi, OOR) ──┼─→ SSE brief
                      │                                                  │
-                     └──── synthesis (Claude Opus 4.7, streaming) ──────┘
+                     └──── synthesis (Groq llama-3.1-8b-instant, streaming) ┘
 ```
 
 A separate **distillation** agent runs on demand from the Memory tab — it reads the patient's findings and persists 3-8 derived memories (long-term trends, allergies, polypharmacy, ER episodes, treatment-response patterns), each carrying citations to source FHIR resources. Subsequent briefs see these memories in context.
@@ -253,8 +253,9 @@ JWT_EXPIRES_IN=7d
 
 # Optional — without this, agent layer runs in deterministic mock mode
 # (rule-based brief synthesis, rule-based distillation). All of the demo
-# works without it; with it you get streaming Claude prose + vision OCR.
-ANTHROPIC_API_KEY=
+# works without it; with it you get streaming LLM prose + vision OCR.
+# Get a key at console.groq.com → API Keys.
+GROQ_API_KEY=
 ```
 
 ---
@@ -266,7 +267,7 @@ ANTHROPIC_API_KEY=
 - **M3-1** — Synthea bundle ingestion: FHIR Bundle parser with two-pass `urn:uuid` reference mapping, idempotent reset.
 - **M3-2** — Patient consent portal (granular toggles), AuditLogPanel, ImpersonationSwitcher, gate enforcement per category, ranked retrieval with complaint focus.
 - **M3-3** — Cite-click drill-down: `GET /api/Resource/:type/:id` + ProvenanceModal with type-specific renderers (Condition, MedicationRequest, Observation, AllergyIntolerance, Encounter, Patient, DerivedMemory).
-- **M3-4** — HL7v2 / CCDA / PDF ingestion: pipe-delimited parser, template-OID-dispatch CCDA parser, Claude vision PDF extractor. Plus the latent `$op` route bug fix.
+- **M3-4** — HL7v2 / CCDA / image ingestion: pipe-delimited parser, template-OID-dispatch CCDA parser, Groq vision image extractor. Plus the latent `$op` route bug fix.
 - **M3-5** — Derived memory layer: 8 memory kinds, distillation agent (LLM + rule-based fallback), MemoryPanel with reject/restore, brief integration with `[cite:DerivedMemory/...]` provenance.
 
 ---

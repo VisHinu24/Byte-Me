@@ -69,7 +69,7 @@ export function AppShell() {
       <footer className="border-t border-clinical-border py-3">
         <div className="mx-auto max-w-7xl px-6 text-xs text-slate-500 flex items-center justify-between">
           <span>PML · MVP scaffold</span>
-          <span>FHIR R4 · MongoDB · Claude agents</span>
+          <span>FHIR R4 · MongoDB Atlas · Groq agents</span>
         </div>
       </footer>
     </div>

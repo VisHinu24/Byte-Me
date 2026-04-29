@@ -27,8 +27,8 @@ Technical reference for evaluators / contributors. Pairs with [README.md](README
    │   │ Patient   _summary  _brief    │  │  Orchestrator           │  │
    │   │ Resource  _distill  _ingest   │──▶ Retrieval (ranked)      │  │
    │   │ Consent   AuditLog            │  │  Risk      (rule-based) │  │
-   │   │ DerivedMemory                 │  │  Synthesis (Claude)     │  │
-   │   └────────────────────────────────┘  │  Distillation (Claude) │  │
+   │   │ DerivedMemory                 │  │  Synthesis (Groq LLM)   │  │
+   │   └────────────────────────────────┘  │  Distillation (Groq LLM)│  │
    │                                       └─────────┬───────────────┘  │
    │   ┌─ services ────────────────────┐             │                  │
    │   │ patientSummary                │             │                  │
@@ -40,10 +40,11 @@ Technical reference for evaluators / contributors. Pairs with [README.md](README
                             │                                 │
                             ▼                                 ▼
                 ┌────────────────────┐              ┌──────────────────┐
-                │  MongoDB           │              │  Anthropic API   │
-                │  FHIR collections  │              │  Claude Opus 4.7 │
-                │  + DerivedMemory   │              │  Claude Haiku    │
-                │  + Consent / Audit │              │  + vision        │
+                │  MongoDB           │              │  Groq API        │
+                │  FHIR collections  │              │  llama-3.1-8b    │
+                │  + DerivedMemory   │              │    (text)        │
+                │  + Consent / Audit │              │  llama-3.2-11b   │
+                │                    │              │    (vision)      │
                 └────────────────────┘              └──────────────────┘
 ```
 
@@ -63,16 +64,16 @@ Technical reference for evaluators / contributors. Pairs with [README.md](README
                 ┌──────────────┐         ┌─────────────┐          ┌──────────────┐
                 │  Retrieval   │         │    Risk     │          │  Synthesis   │
                 │              │         │             │          │              │
-                │ • _summary   │         │ • drug-alg  │          │ • Claude     │
-                │ • memories   │         │ • drug-drug │          │   Opus 4.7   │
-                │ • BM25 rank  │         │ • lab OOR   │          │ • streaming  │
-                │   by         │         │ • trends    │          │ • prompt     │
-                │   complaint  │         │             │          │   caching    │
+                │ • _summary   │         │ • drug-alg  │          │ • Groq LLM   │
+                │ • memories   │         │ • drug-drug │          │   llama-3.1  │
+                │ • BM25 rank  │         │ • lab OOR   │          │   -8b-instant│
+                │   by         │         │ • trends    │          │ • streaming  │
+                │   complaint  │         │             │          │              │
                 └──────────────┘         └─────────────┘          └──────────────┘
-                  deterministic           deterministic              LLM (Opus)
+                  deterministic           deterministic              LLM (Groq)
 
                          + Distillation agent (separate, on-demand from Memory tab)
-                           ─ Claude reads findings + existing memories → proposes new
+                           ─ LLM reads findings + existing memories → proposes new
                              memories with citations → persists → loaded by retrieval
                              on the next brief
 ```
@@ -181,8 +182,7 @@ This is what makes the cite-click modal honest — every resource opens with its
    │                                                               │
    │ g. emit step.start synthesis                                  │
    │ h. synthesis agent:                                           │
-   │     - if ANTHROPIC_API_KEY: stream from Claude with prompt    │
-   │       caching on the patient context block                    │
+   │     - if GROQ_API_KEY: stream from Groq llama-3.1-8b-instant  │
    │     - else: deterministic mock with same section structure    │
    │     - emits 'token' events as text streams in                 │
    │ i. emit step.complete synthesis { mocked }                    │
@@ -292,7 +292,7 @@ The default unnamed identity ("Dr. Demo") gets the bypass so `npm run dev` works
         ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
         │   HL7 v2     │    │   C-CDA XML  │    │   PDF/Image  │
         │              │    │              │    │              │
-        │ pipe-delim   │    │ fast-xml-    │    │ Claude vision│
+        │ pipe-delim   │    │ fast-xml-    │    │ Groq vision  │
         │ tokenizer    │    │ parser       │    │ → structured │
         │ MSH/PID/PV1  │    │ template OID │    │   FHIR JSON  │
         │ OBR/OBX      │    │ dispatch     │    │              │
@@ -367,12 +367,12 @@ Each parser produces the same FHIR-shaped output. The downstream agent layer is 
 | `services/syntheaIngest.js` | FHIR Bundle parser with two-pass `urn:uuid` reference mapping |
 | `services/ingest/hl7v2.js` | Pipe-delimited HL7 v2 parser (ORU/ADT) |
 | `services/ingest/ccda.js` | C-CDA XML parser dispatching on template OIDs |
-| `services/ingest/pdf.js` | Claude vision PDF/image extractor |
+| `services/ingest/pdf.js` | Groq vision image extractor (`llama-3.2-11b-vision-preview`); rejects PDFs |
 | `agents/orchestrator.js` | Coordinates retrieval → risk → synthesis with SSE event emission |
 | `agents/retrieval.js` | Builds findings + ranks by complaint |
 | `agents/risk.js` | Rule-based: drug-allergy, drug-drug, lab OOR, trends |
-| `agents/synthesis.js` | Claude streaming + deterministic mock |
-| `agents/distillation.js` | Claude JSON output for memories + rule-based 5-rule fallback |
+| `agents/synthesis.js` | Groq streaming (`llama-3.1-8b-instant`) + deterministic mock |
+| `agents/distillation.js` | Groq JSON output for memories + rule-based 5-rule fallback |
 | `scripts/seed.js` | 3 hand-crafted personas with realistic histories |
 | `scripts/ingest-synthea.js` | CLI wrapper for syntheaIngest |
 

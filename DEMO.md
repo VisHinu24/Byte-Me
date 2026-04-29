@@ -34,7 +34,7 @@ Open http://localhost:5173. You should see three patients in the list (you're th
 
 > 💡 **Before the demo, copy Aarav's ObjectId.** On his chart page, click the small `id: 69f2…` text in the top-right of the header — it copies to clipboard. You'll need it to impersonate him during Act 4.
 
-> 💡 **Optional:** set `ANTHROPIC_API_KEY` in `apps/api/.env` to switch synthesis from deterministic mock to streaming Claude prose. The mock is good enough for the demo flow; the real model is more impressive.
+> 💡 **Optional:** set `GROQ_API_KEY` in `apps/api/.env` to switch synthesis from deterministic mock to streaming LLM prose (Groq · `llama-3.1-8b-instant`). The mock is good enough for the demo flow; the real model is more impressive and noticeably faster.
 
 > 🎭 **Two voices in the demo.** You'll switch between three identities:
 > - **Default clinician (Dr. Demo)** — the dev-bypass admin view, sees everything
@@ -62,7 +62,7 @@ Open http://localhost:5173. You should see three patients in the list (you're th
 
 - **Step 2 (Risk)** lights up. *"Rule-based, deterministic — drug-allergy conflicts, drug-drug interactions, lab-out-of-range. Critical alerts can't be hallucinated."*
 
-- **Step 3 (Synthesis)** streams tokens. *"This is Claude composing the final brief. In offline mode, it's a deterministic rule-based fallback. With an API key, it's Opus 4.7 streaming."*
+- **Step 3 (Synthesis)** streams tokens. *"This is the LLM composing the final brief — Groq running llama-3.1-8b-instant. In offline mode, it's a deterministic rule-based fallback. With an API key, it's sub-second streaming."*
 
 3. Read the brief out loud as it lands. The first line will be:
    > *"Re: 'sugar levels rising' — most relevant prior context: HbA1c improving over 5 yrs..."*
@@ -165,7 +165,7 @@ Open http://localhost:5173. You should see three patients in the list (you're th
 6. Result: *"7 resources inserted — 2 Conditions, 2 MedicationRequests, 1 AllergyIntolerance, 2 Observations"*.
 7. *"Same patient, now also with structured XML. We dispatched on FHIR template OIDs to extract problem list, medications, allergies, and lab results."*
 
-8. (Optional, if `ANTHROPIC_API_KEY` is set) Switch to **PDF / image** → upload a scanned prescription → result shows extracted structured FHIR with raw vision JSON in the collapsible footer.
+8. (Optional, if `GROQ_API_KEY` is set) Switch to **Image upload** → upload a scanned prescription **as a JPG/PNG** (PDFs aren't supported with the Groq vision backend) → result shows extracted structured FHIR with raw vision JSON in the collapsible footer.
 
 9. Go back to **Memory tab** → **Run distillation** again.
 10. *"The memory layer just learned from the new data — fresh memories from the HL7 lab panel and the CCDA discharge summary."*
@@ -194,7 +194,7 @@ Open http://localhost:5173. You should see three patients in the list (you're th
 | Issue | Fix |
 | --- | --- |
 | `npm run dev` fails with mongo error | Check `MONGO_URI` in `apps/api/.env` is set to your Atlas string and Atlas Network Access allows your IP. |
-| Brief endpoint times out | Verify `ANTHROPIC_API_KEY` or remove it (mock mode works). |
+| Brief endpoint times out | Verify `GROQ_API_KEY` is valid, or unset it (mock mode works without one). |
 | Patient list empty when impersonating a clinician | That's correct behavior — the doctor has no consent. Switch to a patient and grant access first. |
 | Patient list empty when on Default clinician | Run `npm run seed`. |
 | Consent tab missing on chart | You're impersonating a doctor — Consent is patient-only. Switch to the patient identity. |

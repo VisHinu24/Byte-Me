@@ -62,7 +62,7 @@ const memorySchema = new Schema(
     createdBy: {
       kind: { type: String, enum: ['agent', 'clinician', 'patient'], default: 'agent' },
       id: String, // agent name or user id
-      modelHint: String, // e.g. 'claude-opus-4-7', 'rule-based-mock'
+      modelHint: String, // e.g. 'llama-3.1-8b-instant', 'rule-based-mock'
     },
 
     status: {

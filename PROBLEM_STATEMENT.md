@@ -31,7 +31,7 @@ This document maps every claim in the original problem brief to the specific fil
 - [`agents/orchestrator.js`](apps/api/src/agents/orchestrator.js) — coordinates the three-agent flow.
 - [`agents/retrieval.js`](apps/api/src/agents/retrieval.js) — builds findings, ranks by complaint relevance.
 - [`services/keywordRetrieval.js`](apps/api/src/services/keywordRetrieval.js) — BM25 + clinical synonym table (16 concept clusters, 60+ expanded terms).
-- [`agents/synthesis.js`](apps/api/src/agents/synthesis.js) — Claude-streamed brief with section-by-section structure.
+- [`agents/synthesis.js`](apps/api/src/agents/synthesis.js) — Groq-streamed brief with section-by-section structure.
 
 **Demo proof:**
 - Brief panel: type "sugar levels rising" → retrieval shows `⌘ 4 relevant to complaint` with top-3 ranked items + matched terms. Brief opens with `Re: "sugar levels rising" — most relevant prior context: ...`.
@@ -98,7 +98,7 @@ This document maps every claim in the original problem brief to the specific fil
 
 **Where it lives:**
 - SSE streaming endpoint [`routes/brief.js`](apps/api/src/routes/brief.js) — `POST /api/Patient/:id/_brief` emits structured events as each agent runs.
-- Synthesis uses `client.messages.stream()` from Anthropic SDK with token-by-token forwarding.
+- Synthesis uses `client.chat.completions.create({ stream: true })` from Groq SDK with token-by-token forwarding.
 - Frontend [`api.js#streamBrief`](apps/web/src/lib/api.js) parses SSE events and updates UI mid-flight.
 - BriefPanel shows step indicators that animate as each agent completes; brief body has a blinking cursor while tokens stream.
 
@@ -115,8 +115,8 @@ This document maps every claim in the original problem brief to the specific fil
 - Each agent in its own module with a single responsibility:
   - **Retrieval** — context assembly + ranking (deterministic + BM25)
   - **Risk** — rule-based clinical safety checks (deterministic, transparent)
-  - **Synthesis** — narrative composition (Claude Opus 4.7 with prompt caching)
-  - **Distillation** — memory extraction (Claude with strict JSON output, rule-based fallback)
+  - **Synthesis** — narrative composition (Groq `llama-3.1-8b-instant`, streaming)
+  - **Distillation** — memory extraction (Groq `llama-3.1-8b-instant` with strict JSON output, rule-based fallback)
 - Why this split is documented in [`ARCHITECTURE.md`](ARCHITECTURE.md#why-this-split).
 
 **Demo proof:**
@@ -182,7 +182,7 @@ These weren't explicitly required but strengthen the system:
 The brief mentions "incompatible systems, proprietary formats" as the problem. PML responds with three concrete ingestion paths:
 - **HL7 v2** ([`services/ingest/hl7v2.js`](apps/api/src/services/ingest/hl7v2.js)) — pipe-delimited, dominant production format
 - **C-CDA XML** ([`services/ingest/ccda.js`](apps/api/src/services/ingest/ccda.js)) — discharge summary lingua franca
-- **PDF / image** ([`services/ingest/pdf.js`](apps/api/src/services/ingest/pdf.js)) — Claude vision for scanned prescriptions
+- **Image** ([`services/ingest/pdf.js`](apps/api/src/services/ingest/pdf.js)) — Groq vision (`llama-3.2-11b-vision-preview`) for scanned prescriptions; images only (PDFs require conversion)
 
 Plus the FHIR Bundle path via [`services/syntheaIngest.js`](apps/api/src/services/syntheaIngest.js) for modern systems.
 

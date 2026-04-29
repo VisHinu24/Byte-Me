@@ -1,8 +1,8 @@
-import Anthropic from '@anthropic-ai/sdk';
+import Groq from 'groq-sdk';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 
-const DISTILL_MODEL = 'claude-opus-4-7';
+const DISTILL_MODEL = 'llama-3.1-8b-instant';
 const RULE_MODEL = 'rule-based-mock';
 
 const SYSTEM_PROMPT = `You are a clinical memory distiller.
@@ -47,13 +47,13 @@ Aim for 3-6 high-signal memories. Skip if a candidate would be redundant with an
  * @returns {Promise<{ candidates: Array, modelHint: string }>}
  */
 export async function runDistillationAgent({ findings, existing = [] }) {
-  if (!env.anthropicApiKey) {
+  if (!env.groqApiKey) {
     return runRuleBasedDistillation(findings);
   }
 
-  const client = new Anthropic({ apiKey: env.anthropicApiKey });
+  const client = new Groq({ apiKey: env.groqApiKey });
 
-  const cachedContext = JSON.stringify({ findings }, null, 2);
+  const findingsContext = JSON.stringify({ findings }, null, 2);
   const liveContext = JSON.stringify(
     {
       existingMemories: existing.map((m) => ({
@@ -67,31 +67,28 @@ export async function runDistillationAgent({ findings, existing = [] }) {
   );
 
   try {
-    const res = await client.messages.create({
+    const res = await client.chat.completions.create({
       model: DISTILL_MODEL,
-      max_tokens: 2048,
-      system: [
-        { type: 'text', text: SYSTEM_PROMPT },
-        {
-          type: 'text',
-          text: `## Patient longitudinal record\n\n${cachedContext}`,
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
+      temperature: 0.3,
+      max_completion_tokens: 2048,
+      // Ask the API for JSON output where supported. If the model doesn't
+      // honor it perfectly, parseJsonArray will salvage what it can.
+      response_format: { type: 'json_object' },
       messages: [
+        { role: 'system', content: SYSTEM_PROMPT + '\n\nReturn JSON shaped as { "memories": [ ... ] }.' },
         {
           role: 'user',
-          content: `## Existing memories (do not duplicate)\n\n${liveContext}\n\nProduce the JSON array of new memory candidates now. JSON only, no other text.`,
+          content: `## Patient longitudinal record\n\n${findingsContext}\n\n## Existing memories (do not duplicate)\n\n${liveContext}\n\nProduce the JSON object { "memories": [...] } now. JSON only, no other text.`,
         },
       ],
     });
 
-    const text = res.content?.[0]?.type === 'text' ? res.content[0].text : '';
+    const text = res.choices?.[0]?.message?.content ?? '';
     const candidates = parseJsonArray(text);
 
     return { candidates, modelHint: DISTILL_MODEL };
   } catch (err) {
-    logger.warn({ err: err.message }, 'distillation Claude call failed, falling back to rules');
+    logger.warn({ err: err.message }, 'distillation groq call failed, falling back to rules');
     return runRuleBasedDistillation(findings);
   }
 }
@@ -99,19 +96,33 @@ export async function runDistillationAgent({ findings, existing = [] }) {
 function parseJsonArray(text) {
   // Strip code fences if model added them despite instructions.
   const cleaned = text.replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/i, '').trim();
+  const tryShape = (parsed) => {
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed && Array.isArray(parsed.memories)) return parsed.memories;
+    if (parsed && Array.isArray(parsed.candidates)) return parsed.candidates;
+    return null;
+  };
   try {
-    const parsed = JSON.parse(cleaned);
-    return Array.isArray(parsed) ? parsed : [];
+    const out = tryShape(JSON.parse(cleaned));
+    if (out) return out;
   } catch {
-    // Try to find an array substring
-    const m = cleaned.match(/\[[\s\S]*\]/);
-    if (!m) return [];
-    try {
-      return JSON.parse(m[0]);
-    } catch {
-      return [];
-    }
+    /* fall through */
   }
+  // Try to find an object or array substring
+  const objMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (objMatch) {
+    try {
+      const out = tryShape(JSON.parse(objMatch[0]));
+      if (out) return out;
+    } catch { /* */ }
+  }
+  const arrMatch = cleaned.match(/\[[\s\S]*\]/);
+  if (arrMatch) {
+    try {
+      return JSON.parse(arrMatch[0]) ?? [];
+    } catch { /* */ }
+  }
+  return [];
 }
 
 // ---------- Rule-based fallback ----------

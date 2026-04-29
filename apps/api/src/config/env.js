@@ -14,7 +14,7 @@ export const env = {
   mongoUri: required('MONGO_URI'),
   jwtSecret: required('JWT_SECRET', 'dev-secret-change-me'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? '',
+  groqApiKey: process.env.GROQ_API_KEY ?? '',
 };
 
 export const isDev = env.nodeEnv === 'development';

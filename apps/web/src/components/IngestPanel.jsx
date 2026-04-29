@@ -7,7 +7,7 @@ import { fmtDate } from '../lib/format.js';
 const FORMAT_TABS = [
   { key: 'hl7v2', label: 'HL7 v2', desc: 'Pipe-delimited messages (ORU lab, ADT admit/discharge)' },
   { key: 'ccda', label: 'C-CDA XML', desc: 'Continuity of care document' },
-  { key: 'pdf', label: 'PDF / image', desc: 'Scanned prescription or report (Claude vision)' },
+  { key: 'pdf', label: 'Image upload', desc: 'Scanned prescription / report photo — extracted via Groq vision' },
 ];
 
 export function IngestPanel({ patientId }) {
@@ -176,7 +176,7 @@ function PdfIngest({ fileRef, onSubmit, loading }) {
         <input
           ref={fileRef}
           type="file"
-          accept="application/pdf,image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp"
           onChange={(e) => setFilename(e.target.files?.[0]?.name ?? '')}
           className="block w-full text-sm text-slate-400 file:mr-3 file:py-2 file:px-3 file:rounded file:border file:border-clinical-border file:bg-clinical-panel file:text-slate-200 hover:file:border-clinical-accent"
         />
@@ -184,8 +184,8 @@ function PdfIngest({ fileRef, onSubmit, loading }) {
           <p className="text-xs text-slate-400 mt-2 font-mono">selected: {filename}</p>
         )}
         <p className="text-xs text-slate-500 mt-3">
-          Claude vision extracts medications, conditions, allergies, and observations.<br />
-          Requires <span className="font-mono">ANTHROPIC_API_KEY</span> on the API server.
+          Groq vision extracts medications, conditions, allergies, and observations.<br />
+          Requires <span className="font-mono">GROQ_API_KEY</span> on the API server. Images only (jpg/png/webp).
         </p>
       </div>
       <div className="flex items-center justify-end">

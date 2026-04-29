@@ -36,8 +36,11 @@ router.post(
     const patientId = req.params.id;
     const patientRef = `Patient/${patientId}`;
 
-    // Pull current findings for the patient
-    const { findings } = await runRetrievalAgent({ patientId });
+    // Pull current findings for the patient (scoped to caller's grants).
+    const { findings } = await runRetrievalAgent({
+      patientId,
+      allowedCategories: req.consent?.grantedCategories ?? null,
+    });
 
     // Avoid duplicating against existing active memories
     const existing = await DerivedMemory.find({

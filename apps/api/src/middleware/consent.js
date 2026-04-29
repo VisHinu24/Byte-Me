@@ -23,8 +23,9 @@ export function requireConsent(category) {
 
     const patientRef = `Patient/${patientId}`;
 
-    // 1. Patient accessing their own record
+    // 1. Patient accessing their own record — unrestricted
     if (req.user.role === 'patient' && req.user.sub === patientId) {
+      req.consent = { grantedCategories: null, scope: 'self' };
       await AuditLog.create({
         actor: { kind: 'user', id: req.user.sub, role: req.user.role },
         action: 'consent.check',
@@ -68,6 +69,7 @@ export function requireConsent(category) {
     // identity, so first-run dev works smoothly. Impersonated users go
     // through the real gate so the demo can show enforcement.
     if (!allowed && isDev && !req.user.impersonated) {
+      req.consent = { grantedCategories: null, scope: 'dev-bypass' };
       await AuditLog.create({
         actor: { kind: 'user', id: req.user.sub, role: req.user.role },
         action: 'consent.check',
@@ -79,6 +81,25 @@ export function requireConsent(category) {
       }).catch((err) => logger.warn({ err }, 'audit log write failed'));
       logger.warn({ patientRef, granteeRef, category, reason }, 'consent dev-bypass');
       return next();
+    }
+
+    if (allowed) {
+      // Aggregate the union of granted categories across all live grants.
+      // 'all' on any grant means unrestricted.
+      const cats = new Set();
+      for (const c of live) {
+        for (const k of c.scope?.categories ?? []) cats.add(k);
+      }
+      const grantedCategories = cats.has('all') ? null : [...cats];
+      req.consent = {
+        grantedCategories,
+        scope: 'consent-grant',
+        grants: live.map((c) => ({
+          id: c._id?.toString(),
+          categories: c.scope?.categories ?? [],
+          period: c.period,
+        })),
+      };
     }
 
     await AuditLog.create({

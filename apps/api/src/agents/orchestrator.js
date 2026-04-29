@@ -16,17 +16,18 @@ import { logger } from '../config/logger.js';
  *   { type: 'done', brief, durationMs }
  *   { type: 'error', message }
  */
-export async function orchestrateBrief({ patientId, complaint }, emit) {
+export async function orchestrateBrief({ patientId, complaint, allowedCategories = null }, emit) {
   const t0 = Date.now();
 
   try {
-    // 1. Retrieval
+    // 1. Retrieval (scoped to allowedCategories — null = unrestricted)
     emit({ type: 'step.start', step: 'retrieval' });
-    const retrieval = await runRetrievalAgent({ patientId, complaint });
+    const retrieval = await runRetrievalAgent({ patientId, complaint, allowedCategories });
     emit({
       type: 'step.complete',
       step: 'retrieval',
       payload: {
+        allowedCategories,
         counts: {
           activeProblems: retrieval.findings.activeProblems.length,
           currentMedications: retrieval.findings.currentMedications.length,
@@ -60,7 +61,7 @@ export async function orchestrateBrief({ patientId, complaint }, emit) {
 
     // 3. Synthesis (streamed)
     emit({ type: 'step.start', step: 'synthesis' });
-    const { text, mocked } = await runSynthesisAgent(
+    const { text, mocked, refused } = await runSynthesisAgent(
       {
         findings: retrieval.findings,
         risks,
@@ -68,13 +69,14 @@ export async function orchestrateBrief({ patientId, complaint }, emit) {
       },
       (chunk) => emit({ type: 'token', text: chunk })
     );
-    emit({ type: 'step.complete', step: 'synthesis', payload: { mocked } });
+    emit({ type: 'step.complete', step: 'synthesis', payload: { mocked, refused: !!refused } });
 
     const durationMs = Date.now() - t0;
     emit({
       type: 'done',
       brief: text,
       mocked,
+      refused: !!refused,
       risks,
       findings: retrieval.findings,
       durationMs,
@@ -83,6 +85,7 @@ export async function orchestrateBrief({ patientId, complaint }, emit) {
     return {
       brief: text,
       mocked,
+      refused: !!refused,
       risks,
       findings: retrieval.findings,
       durationMs,

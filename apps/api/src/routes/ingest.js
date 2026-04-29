@@ -83,7 +83,14 @@ router.post(
     const patientId = req.params.id;
     const mediaType = req.file.mimetype;
 
-    if (!/^application\/pdf|^image\/(jpeg|png|webp)/.test(mediaType)) {
+    if (mediaType === 'application/pdf') {
+      throw new HttpError(
+        400,
+        'PDF uploads are not currently supported with the Groq vision backend. ' +
+        'Please convert each page to an image (PNG/JPEG/WEBP) and upload it.'
+      );
+    }
+    if (!/^image\/(jpeg|png|webp)/.test(mediaType)) {
       throw new HttpError(400, `Unsupported media type: ${mediaType}`);
     }
 

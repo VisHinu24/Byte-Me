@@ -53,7 +53,11 @@ router.post(
         if (!aborted) send(event);
       };
 
-      await orchestrateBrief({ patientId: id, complaint }, emit);
+      await orchestrateBrief({
+        patientId: id,
+        complaint,
+        allowedCategories: req.consent?.grantedCategories ?? null,
+      }, emit);
     } catch (err) {
       send({ type: 'error', message: err.message });
       await recordAudit({

@@ -99,7 +99,9 @@ router.get('/:id', requireValidId, requireConsent('demographics'), async (req, r
 });
 
 router.get('/:id/_summary', requireValidId, requireConsent('*'), async (req, res) => {
-  const summary = await buildPatientSummary(req.params.id);
+  const summary = await buildPatientSummary(req.params.id, {
+    allowedCategories: req.consent?.grantedCategories ?? null,
+  });
   res.json(summary);
 });
 

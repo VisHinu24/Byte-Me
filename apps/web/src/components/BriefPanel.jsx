@@ -84,6 +84,8 @@ export function BriefPanel({ patientId }) {
         hasOutput={!!text}
       />
 
+      <AccessScopeBanner allowedCategories={stepPayloads?.retrieval?.allowedCategories} />
+
       <StepStrip stepState={stepState} stepPayloads={stepPayloads} />
 
       {error && (
@@ -104,6 +106,48 @@ export function BriefPanel({ patientId }) {
         />
       )}
     </section>
+  );
+}
+
+function AccessScopeBanner({ allowedCategories }) {
+  // null/undefined = unrestricted access (patient self or default Dr. Demo).
+  // We only show the banner when the brief is actually scope-limited.
+  if (allowedCategories == null) return null;
+
+  const cats = Array.isArray(allowedCategories) ? allowedCategories : [];
+  const isEmpty = cats.length === 0;
+
+  return (
+    <div
+      className={`rounded-lg border p-3 text-xs flex items-start gap-3 ${
+        isEmpty
+          ? 'border-clinical-danger/40 bg-clinical-danger/10'
+          : 'border-clinical-warn/30 bg-clinical-warn/5'
+      }`}
+    >
+      <span className={isEmpty ? 'text-clinical-danger' : 'text-clinical-warn'}>🔒</span>
+      <div className="flex-1">
+        <div className="font-medium text-slate-200">
+          {isEmpty
+            ? 'No data scope granted to you for this patient.'
+            : 'Restricted access scope — patient grants determine what you see.'}
+        </div>
+        <div className="mt-1 flex flex-wrap gap-1">
+          {isEmpty ? (
+            <span className="text-clinical-danger">The brief cannot include any clinical content.</span>
+          ) : (
+            cats.map((c) => (
+              <span key={c} className="pill border-clinical-warn/40 text-clinical-warn">
+                {c}
+              </span>
+            ))
+          )}
+        </div>
+        <div className="mt-1 text-slate-500">
+          Anything outside this scope is intentionally omitted from the brief and synthesis.
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -231,7 +275,7 @@ function renderPayload(key, p) {
     return parts.join(' · ');
   }
   if (key === 'synthesis') {
-    return p.mocked ? 'mock mode (no API key)' : 'Claude streamed';
+    return p.mocked ? 'mock mode (no API key)' : 'Groq streamed';
   }
   return null;
 }

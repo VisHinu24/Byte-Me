@@ -12,8 +12,8 @@ import { rankClinicalContext } from '../services/keywordRetrieval.js';
  *
  * Future: vector search over derived episode summaries + clinical notes.
  */
-export async function runRetrievalAgent({ patientId, complaint }) {
-  const summary = await buildPatientSummary(patientId);
+export async function runRetrievalAgent({ patientId, complaint, allowedCategories = null }) {
+  const summary = await buildPatientSummary(patientId, { allowedCategories });
   const memories = await DerivedMemory.find({
     'patient.reference': `Patient/${patientId}`,
     status: 'active',
@@ -73,6 +73,7 @@ export async function runRetrievalAgent({ patientId, complaint }) {
     })),
 
     complaintFocus: complaint || null,
+    allowedCategories, // surfaced so synthesis can declare scope to the LLM + UI
   };
 
   // If a complaint is provided, score every clinical item and surface the
