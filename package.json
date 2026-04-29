@@ -1,0 +1,23 @@
+{
+  "name": "patient-memory-layer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-Agent-Powered Longitudinal Patient Memory Layer",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev -w @pml/api\" \"npm run dev -w @pml/web\"",
+    "dev:api": "npm run dev -w @pml/api",
+    "dev:web": "npm run dev -w @pml/web",
+    "seed": "npm run seed -w @pml/api",
+    "ingest:synthea": "npm run ingest:synthea -w @pml/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

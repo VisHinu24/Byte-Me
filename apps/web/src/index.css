@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  body {
+    font-family: 'Inter var', 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-xl border border-clinical-border bg-clinical-panel/60 backdrop-blur-sm;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-clinical-border bg-clinical-panel px-3 py-1.5 text-sm font-medium text-slate-100 transition hover:border-clinical-accent hover:text-clinical-accent disabled:opacity-50;
+  }
+  .prose-brief {
+    @apply text-sm leading-relaxed text-slate-200;
+  }
+  .prose-brief h3 {
+    @apply text-xs uppercase tracking-wide text-clinical-accent font-semibold mt-4 first:mt-0 mb-1;
+  }
+  .prose-brief p {
+    @apply mb-2;
+  }
+  .prose-brief ul {
+    @apply mb-2 space-y-1;
+  }
+  .prose-brief li {
+    @apply pl-3 relative;
+  }
+  .prose-brief li::before {
+    content: '·';
+    @apply absolute left-0 text-clinical-accent;
+  }
+  .prose-brief strong {
+    @apply text-slate-50;
+  }
+  .prose-brief em {
+    @apply text-slate-400 not-italic;
+  }
+  .prose-brief .cite {
+    @apply ml-1 inline-block rounded border border-clinical-accent/30 bg-clinical-accent/10 px-1.5 py-0.5 text-[10px] font-mono text-clinical-accent cursor-pointer align-middle transition;
+  }
+  .prose-brief .cite:hover {
+    @apply bg-clinical-accent/20 border-clinical-accent;
+  }
+  .cite-btn {
+    @apply inline-flex items-center gap-1 rounded border border-clinical-accent/30 bg-clinical-accent/10 px-1.5 py-0.5 text-[10px] font-mono text-clinical-accent transition hover:bg-clinical-accent/20 hover:border-clinical-accent cursor-pointer;
+  }
+  .prose-brief .cursor {
+    @apply inline-block text-clinical-accent;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e2a44;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2a3a5c;
+}

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(node --check apps/api/src/index.js)",
+      "Bash(node --check apps/api/src/app.js)",
+      "Bash(node --check apps/api/src/routes/patient.js)",
+      "Bash(node --check apps/api/src/scripts/seed.js)"
+    ]
+  }
+}

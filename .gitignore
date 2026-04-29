@@ -1,0 +1,21 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.*.local
+apps/*/.env
+apps/*/.env.local
+*.log
+npm-debug.log*
+.DS_Store
+.vscode/
+.idea/
+coverage/
+.turbo/
+.cache/
+synthea_output/
+# data/ is checked in for the bundled sample. Larger generated runs go to
+# data/synthea/output/ which is ignored.
+data/synthea/output/
+data/synthea/metadata/
