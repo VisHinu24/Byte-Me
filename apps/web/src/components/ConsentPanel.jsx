@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { fmtDate, fmtRelative } from '../lib/format.js';
@@ -67,14 +67,54 @@ export function ConsentPanel({ patientId }) {
   );
 }
 
+// Default values for a fresh grant.
+const DEFAULT_CATEGORIES = ['conditions', 'medications', 'allergies', 'observations'];
+const DEFAULT_DURATION = '30d';
+
+// Map an existing grant's expiry timestamp back to the closest preset
+// duration option, so the form can pre-fill cleanly. Returns the preset key
+// or 'open' if no expiry.
+function durationFromGrant(grant) {
+  if (!grant?.period?.end) return 'open';
+  const remainingMs = new Date(grant.period.end).getTime() - Date.now();
+  if (remainingMs <= 0) return DEFAULT_DURATION;
+  // Pick the smallest preset that's >= remaining (so we don't extend silently).
+  const sorted = [...DURATION_OPTIONS].filter((d) => d.ms != null).sort((a, b) => a.ms - b.ms);
+  for (const opt of sorted) {
+    if (remainingMs <= opt.ms) return opt.value;
+  }
+  return 'open';
+}
+
 function GrantForm({ patientId, existing, onSubmit, submitting, error }) {
   const [granteeRef, setGranteeRef] = useState(DEMO_PROVIDERS[0].ref);
-  const [categories, setCategories] = useState(['conditions', 'medications', 'allergies', 'observations']);
-  const [duration, setDuration] = useState('30d');
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+  const [duration, setDuration] = useState(DEFAULT_DURATION);
   const [purpose, setPurpose] = useState('treatment');
 
   const grantee = useMemo(() => findProvider(granteeRef), [granteeRef]);
-  const alreadyGranted = existing?.some((g) => g.grantee?.reference === granteeRef);
+  const existingGrant = useMemo(
+    () => existing?.find((g) => g.grantee?.reference === granteeRef) ?? null,
+    [existing, granteeRef]
+  );
+  const alreadyGranted = !!existingGrant;
+
+  // When the user picks a provider that already has an active grant,
+  // pre-fill the form with that grant's current categories + duration + purpose.
+  // This way "Update" feels like editing, not starting from scratch.
+  useEffect(() => {
+    if (existingGrant) {
+      setCategories(existingGrant.scope?.categories?.length
+        ? [...existingGrant.scope.categories]
+        : DEFAULT_CATEGORIES);
+      setDuration(durationFromGrant(existingGrant));
+      setPurpose(existingGrant.purpose?.[0] ?? 'treatment');
+    } else {
+      setCategories(DEFAULT_CATEGORIES);
+      setDuration(DEFAULT_DURATION);
+      setPurpose('treatment');
+    }
+  }, [granteeRef, existingGrant]);
 
   const toggle = (cat) => {
     setCategories((c) => (c.includes(cat) ? c.filter((x) => x !== cat) : [...c, cat]));
@@ -98,7 +138,9 @@ function GrantForm({ patientId, existing, onSubmit, submitting, error }) {
 
   return (
     <form onSubmit={submit} className="panel p-5 space-y-4">
-      <div className="text-sm font-semibold uppercase tracking-wide text-slate-300">Grant new access</div>
+      <div className="text-sm font-semibold uppercase tracking-wide text-slate-300">
+        {alreadyGranted ? 'Update existing access' : 'Grant new access'}
+      </div>
 
       {/* Provider picker */}
       <div className="space-y-2">
@@ -122,8 +164,8 @@ function GrantForm({ patientId, existing, onSubmit, submitting, error }) {
           ))}
         </div>
         {alreadyGranted && (
-          <div className="text-xs text-clinical-warn">
-            Note: an active grant already exists for this provider. Submitting will create an additional record.
+          <div className="text-xs text-clinical-accent">
+            Editing the existing grant for {grantee?.name}. Submitting will replace it; the prior grant moves to "Past / revoked" with a full audit entry.
           </div>
         )}
       </div>
@@ -198,7 +240,7 @@ function GrantForm({ patientId, existing, onSubmit, submitting, error }) {
       <div className="flex items-center justify-between">
         <div className="text-xs text-slate-500">
           {grantee && categories.length > 0 ? (
-            <>Granting <strong className="text-slate-300">{grantee.name}</strong> access to <strong className="text-slate-300">{categories.length}</strong> categories for <strong className="text-slate-300">{DURATION_OPTIONS.find((d) => d.value === duration)?.label}</strong>.</>
+            <>{alreadyGranted ? 'Updating' : 'Granting'} <strong className="text-slate-300">{grantee.name}</strong> access to <strong className="text-slate-300">{categories.length}</strong> categories for <strong className="text-slate-300">{DURATION_OPTIONS.find((d) => d.value === duration)?.label}</strong>.</>
           ) : 'Pick a provider and at least one category.'}
         </div>
         <button
@@ -206,7 +248,9 @@ function GrantForm({ patientId, existing, onSubmit, submitting, error }) {
           disabled={submitting || categories.length === 0}
           className="btn border-clinical-accent text-clinical-accent"
         >
-          {submitting ? 'Granting…' : 'Grant access'}
+          {submitting
+            ? (alreadyGranted ? 'Updating…' : 'Granting…')
+            : (alreadyGranted ? 'Update existing grant' : 'Grant access')}
         </button>
       </div>
     </form>

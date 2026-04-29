@@ -66,9 +66,36 @@ router.post('/', requirePatient, async (req, res) => {
     throw new HttpError(403, 'You can only grant consent for your own record');
   }
 
+  const patientRef = `Patient/${body.patientId}`;
+  const now = new Date();
+
+  // Single-active-grant invariant: one active Consent per (patient, grantee).
+  // If the patient is updating an existing active grant, revoke the prior
+  // one before creating the new one. This preserves the full audit trail
+  // (prior grant lives on with status=inactive, revokedAt=now) while keeping
+  // the active list clean.
+  const supersededIds = [];
+  const existing = await Consent.find({
+    'patient.reference': patientRef,
+    'grantee.reference': body.granteeRef,
+    status: 'active',
+  });
+  for (const prior of existing) {
+    prior.status = 'inactive';
+    prior.revokedAt = now;
+    await prior.save();
+    supersededIds.push(prior._id.toString());
+    await recordAudit({
+      req,
+      action: 'consent.revoke',
+      patientId: body.patientId,
+      details: { consentId: prior._id.toString(), reason: 'superseded-by-new-grant' },
+    });
+  }
+
   const consent = await Consent.create({
     status: 'active',
-    patient: { reference: `Patient/${body.patientId}` },
+    patient: { reference: patientRef },
     grantee: {
       type: body.granteeType,
       reference: body.granteeRef,
@@ -76,17 +103,21 @@ router.post('/', requirePatient, async (req, res) => {
     },
     scope: { categories: body.categories },
     purpose: body.purpose,
-    period: { start: new Date(), end: body.expiresAt ? new Date(body.expiresAt) : undefined },
+    period: { start: now, end: body.expiresAt ? new Date(body.expiresAt) : undefined },
   });
 
   await recordAudit({
     req,
     action: 'consent.grant',
     patientId: body.patientId,
-    details: { granteeRef: body.granteeRef, categories: body.categories },
+    details: {
+      granteeRef: body.granteeRef,
+      categories: body.categories,
+      supersededIds: supersededIds.length ? supersededIds : undefined,
+    },
   });
 
-  res.status(201).json(consent);
+  res.status(201).json({ ...consent.toObject(), supersededIds });
 });
 
 router.delete('/:id', requirePatient, async (req, res) => {
