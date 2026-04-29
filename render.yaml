@@ -1,0 +1,36 @@
+# Render Blueprint — one-click deploy of the Patient Memory Layer API.
+#
+# Usage:
+#   1. Push this repo to GitHub.
+#   2. On render.com → "New" → "Blueprint" → connect this repo.
+#   3. Render auto-detects this file and creates the service below.
+#   4. Fill in the four secret env vars when prompted (sync: false marks them
+#      as runtime-only secrets that you supply via the Render dashboard).
+#   5. Once the API is live, copy its URL and set it as VITE_API_URL on
+#      Vercel. After Vercel deploys, copy that URL back here as
+#      FRONTEND_ORIGIN to enable strict CORS.
+
+services:
+  - type: web
+    name: pml-api
+    runtime: node
+    plan: free                # cold starts after 15min idle; bump to "starter" ($7/mo) to keep warm
+    rootDir: .                # monorepo root — workspaces install everything in one go
+    buildCommand: npm install --no-audit --no-fund
+    startCommand: npm start --workspace @pml/api
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      # Secrets — set these in the Render dashboard, never commit them.
+      - key: MONGO_URI
+        sync: false           # MongoDB Atlas connection string
+      - key: JWT_SECRET
+        sync: false           # any 32+ char random string
+      - key: GROQ_API_KEY
+        sync: false           # from console.groq.com → API Keys
+      - key: FRONTEND_ORIGIN
+        sync: false           # set to your Vercel URL once it exists, e.g. https://pml.vercel.app

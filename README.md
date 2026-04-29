@@ -44,7 +44,7 @@ npm run dev
 - **API**: http://localhost:4000 (health: `/health`)
 - **Web**: http://localhost:5173
 
-> 🎭 For a guided demo flow, see [DEMO.md](DEMO.md). For architecture details, see [ARCHITECTURE.md](ARCHITECTURE.md).
+> 🎭 For a guided demo flow, see [DEMO.md](DEMO.md). For architecture details, see [ARCHITECTURE.md](ARCHITECTURE.md). To put it on a public URL, see [DEPLOYMENT.md](DEPLOYMENT.md) (Vercel + Render, ~10 min).
 
 ---
 

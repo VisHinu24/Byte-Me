@@ -5,7 +5,8 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 
-import { isDev } from './config/env.js';
+import { env, isDev } from './config/env.js';
+import { logger } from './config/logger.js';
 import healthRouter from './routes/health.js';
 import patientRouter from './routes/patient.js';
 import briefRouter from './routes/brief.js';
@@ -23,7 +24,7 @@ export function createApp() {
   const app = express();
 
   app.use(helmet());
-  app.use(cors({ origin: true, credentials: true }));
+  app.use(cors(corsOptions()));
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan(isDev ? 'dev' : 'combined'));
@@ -57,4 +58,40 @@ export function createApp() {
   app.use(errorHandler);
 
   return app;
+}
+
+/**
+ * CORS policy:
+ *   - In dev (no FRONTEND_ORIGIN set): permissive — `origin: true` echoes
+ *     whatever origin the browser sent. Lets `localhost:5173` work alongside
+ *     other dev hosts without manual allowlisting.
+ *   - In prod (FRONTEND_ORIGIN set): only the configured origin(s) +
+ *     localhost are allowed. FRONTEND_ORIGIN supports a comma-separated list
+ *     so a staging + prod URL can coexist.
+ */
+function corsOptions() {
+  if (!env.frontendOrigin) {
+    return { origin: true, credentials: true };
+  }
+  const allowed = env.frontendOrigin
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  logger.info({ allowedOrigins: allowed }, 'cors policy: restricted to configured origins (+ localhost)');
+
+  return {
+    credentials: true,
+    origin(origin, cb) {
+      // Allow requests with no origin (curl, server-to-server, health probes).
+      if (!origin) return cb(null, true);
+      // Always allow localhost for local-against-prod debugging.
+      if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return cb(null, true);
+      if (allowed.includes(origin)) return cb(null, true);
+      // Silent rejection: omit Access-Control-Allow-Origin so the browser
+      // blocks. We don't surface a 500 — that just leaks server error logs
+      // for what's a routine cross-origin probe.
+      logger.warn({ origin }, 'cors: origin rejected');
+      return cb(null, false);
+    },
+  };
 }

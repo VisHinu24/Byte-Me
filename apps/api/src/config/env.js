@@ -15,6 +15,9 @@ export const env = {
   jwtSecret: required('JWT_SECRET', 'dev-secret-change-me'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
   groqApiKey: process.env.GROQ_API_KEY ?? '',
+  // Comma-separated list of allowed CORS origins (production hardening).
+  // When unset, CORS is permissive (dev). Set to e.g. "https://pml.vercel.app".
+  frontendOrigin: process.env.FRONTEND_ORIGIN ?? null,
 };
 
 export const isDev = env.nodeEnv === 'development';
