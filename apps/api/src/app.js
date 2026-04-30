@@ -15,6 +15,7 @@ import auditRouter from './routes/audit.js';
 import resourceRouter from './routes/resource.js';
 import memoryRouter, { memoryStatusRouter } from './routes/memory.js';
 import ingestRouter from './routes/ingest.js';
+import prescribeRouter from './routes/prescribe.js';
 import meRouter from './routes/me.js';
 import demoRouter from './routes/demo.js';
 import { authenticate } from './middleware/auth.js';
@@ -49,6 +50,7 @@ export function createApp() {
   app.use('/api/Patient', briefRouter);
   app.use('/api/Patient', memoryRouter);
   app.use('/api/Patient', ingestRouter);
+  app.use('/api/Patient', prescribeRouter);
   app.use('/api/DerivedMemory', memoryStatusRouter);
   app.use('/api/Consent', consentRouter);
   app.use('/api/AuditLog', auditRouter);

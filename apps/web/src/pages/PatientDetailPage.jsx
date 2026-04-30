@@ -9,11 +9,13 @@ import { ConsentPanel } from '../components/ConsentPanel.jsx';
 import { AuditLogPanel } from '../components/AuditLogPanel.jsx';
 import { MemoryPanel } from '../components/MemoryPanel.jsx';
 import { IngestPanel } from '../components/IngestPanel.jsx';
+import { PrescribePanel } from '../components/PrescribePanel.jsx';
 
 const ALL_TABS = [
   { key: 'clinical', label: 'Clinical record & brief', roles: ['patient', 'clinician'] },
   { key: 'memory', label: 'Memory', roles: ['patient'] }, // patient-only — doctors don't curate memory
   { key: 'ingest', label: 'Ingest', roles: ['patient', 'clinician'] },
+  { key: 'prescribe', label: 'Prescribe', roles: ['patient', 'clinician'] },
   { key: 'consent', label: 'Consent', roles: ['patient'] }, // patient-only
   { key: 'audit', label: 'Audit log', roles: ['patient', 'clinician'] },
 ];
@@ -127,6 +129,7 @@ export function PatientDetailPage() {
       {activeTab === 'clinical' && <ClinicalView summary={summary} />}
       {activeTab === 'memory' && <MemoryPanel patientId={patient._id} />}
       {activeTab === 'ingest' && <IngestPanel patientId={patient._id} />}
+      {activeTab === 'prescribe' && <PrescribePanel patientId={patient._id} />}
       {activeTab === 'consent' && <ConsentPanel patientId={patient._id} />}
       {activeTab === 'audit' && <AuditLogPanel patientId={patient._id} />}
     </div>

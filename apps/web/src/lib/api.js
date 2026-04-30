@@ -73,6 +73,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ format, content }),
     }),
+
+  prescribe: (patientId, body) =>
+    request(`/api/Patient/${patientId}/_prescribe`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 };
 
 /**

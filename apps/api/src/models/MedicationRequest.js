@@ -34,6 +34,8 @@ const medicationRequestSchema = new Schema(
     authoredOn: Date,
     requester: referenceSchema, // Practitioner
     reasonReference: [referenceSchema], // Conditions
+    reasonCode: [codeableConceptSchema], // free-text reason — used by manual prescriptions
+    note: [{ text: String, time: Date, _id: false }],
     dosageInstruction: [
       {
         text: String,

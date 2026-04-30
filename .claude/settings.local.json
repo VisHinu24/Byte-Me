@@ -6,7 +6,8 @@
       "Bash(node --check apps/api/src/app.js)",
       "Bash(node --check apps/api/src/routes/patient.js)",
       "Bash(node --check apps/api/src/scripts/seed.js)",
-      "Bash(npx vite *)"
+      "Bash(npx vite *)",
+      "Bash(timeout 60 npm run seed)"
     ]
   }
 }
